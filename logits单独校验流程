@@ -1,0 +1,20 @@
+通过Teacher-forcing技术，回溯模型在生成每一个引文数字瞬间的心理状态（Logits/概率分布）。引文生成本质上是概率寻址，强行将模型状态固定在引用括号 [ 刚生成的瞬间，然后进行一次 causal forward（因果前向计算），拿到top10_numeric_logits（前10个数字 token 的原始得分）。
+
+flowchart TD
+    A[tokenizer.build_chat_input prompt] --> B[取 user 段长度 p0]
+    B --> C{遍历 _assistant_encoding_variants frozen}
+    C --> D[encode variant 为 suf]
+    D --> E{suf 非空?}
+    E -->|否| C
+    E -->|是| F[full = input_ids + suf; attention_mask 全 1]
+    F --> G[model 前向 inference_mode]
+    G --> H[next_pos = p0 + len(suf) - 1, 边界裁剪]
+    H --> I[logits_1d = logits_full[next_pos]]
+    I --> J{target_next_token_id 为 None?}
+    J -->|是| K[选定该 variant, break]
+    J -->|否| L[用 logits_1d[target] 选最大分的 variant]
+    L --> C
+    K --> M{所有 variant 都失败?}
+    M -->|是| N[RuntimeError]
+    M -->|否| O[softmax / logtoku / extract_top_numeric_prefix / top_k_numeric...]
+    O --> P[返回 logits_1d, variant, comp, comp_prime, top10_nb, numeric_prefix_tokens]
