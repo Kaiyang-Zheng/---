@@ -1,27 +1,5 @@
-
-```mermaid
-flowchart TD
-  A[读取 bench 行<br/>raw context + query] --> B[ensure_longcite_indexed_context]
-  B -->|原文无 C 标记时| B1[text_split_by_punctuation<br/>Punkt + 中文标点]
-  B1 --> B2[拼成每行 Csid 前缀]
-  B -->|已有 C 行则跳过| C[parse_indexed_context]
-  B2 --> C
-  C --> D[sid 到句全文映射 sid_to_text]
-  C --> E[PROMPT_TEMPLATE<br/>文档 + 问题]
-  E --> F[tokenizer.build_chat_input]
-  F --> G[model.generate<br/>do_sample temperature top_p]
-  G --> H[decode 得 prediction]
-  H --> I[extract_statements<br/>cite 对齐 sid]
-  I --> J[attach_cite_span_top10_to_statements<br/>首数字步 top10 数字 token]
-  G --> K[遍历每步 logits<br/>cite 内数字步]
-  K --> L[digit_step_details<br/>top_numeric_prefix_tokens<br/>top10_numeric_by_logit]
-  J --> M[后处理 enrich]
-  L --> M
-  D --> M[按 token_text 解析 sid<br/>查 sid_to_text 写入 cite_text]
-  M --> N[写出 JSON 数组]
-```
 # LongBench-Cite 与 SQuALITY（本批 preds + gpt4o cite）：引用跨度 logits / au·eu / 方差 / GPT 与候选句
-> 数据来源：`/share/home/zhengky/knowledge-provenance-demo/LongCite-main/LongBench-Cite/scores_local/longbench_squality_top10_per_ds_with_cite_text.json` + `/share/home/zhengky/knowledge-provenance-demo/LongCite-main/LongBench-Cite/scores_local/longbench_top10_per_ds_gpt4o_cite.json`。 共 **30** 条（cite 中含 `citation_f1`；bench `context` 来自 LongBench-Cite.json 或 SQuALITY dev/test.jsonl）。
+> 数据来源：`/share/home/zhengky/knowledge-provenance-demo/LongCite-main/LongBench-Cite/scores_local/longbench_squality_top10_per_ds_with_cite_text.json` + `/share/home/zhengky/knowledge-provenance-demo/LongCite-main/LongBench-Cite/scores_local/longbench_top10_per_ds_gpt4o_cite.json`。 共 **50** 条（cite 中含 `citation_f1`；bench `context` 来自 LongBench-Cite.json 或 SQuALITY dev/test.jsonl）。
 
 
 ## 阅读说明（量表与表格列）
@@ -3110,3 +3088,2816 @@ GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=9383, completion
 ### 陈述 8
 综上所述，宫腔镜检查对身体的危害主要包括损伤、出血、感染等，需要在术前和术后注意适当的护理和避免性生活，以预防感染和不孕。
 - GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+## squality_dev_idx0 (idx=0, squality_dev)
+### 问题
+What is the plot of the story?
+
+### 参考答案（数据集）
+- ref1: Brevet Lieutenant Commander David Farragut Stryakalski III, AKA Strike, is charged with commanding a run-down and faulty vessel, the Aphrodite. Aphrodite was the brain-child of Harlan Hendricks, an engineer who ushered in new technology ten years back. All three of his creations failed spectacularly, resulting in death and a failed career. The Aphrodite was the only ship to survive, and she is now used for hauling mail back and forth between Venus and Mars. Strike and Cob, the Aphrodite’s only executive to last more than six months, recount Strike’s great failures and how he ended up here. He used to fly the Ganymede, but was removed after he left his position to rescue colonists who didn’t need rescuing. Strike was no longer trustworthy in Admiral Gorman’s eyes, so he banished him to the …
+- ref2: Strike joins the crew of the Aphrodite after he has made several poor decisions while he was the captain of another spaceship. He is essentially being punished by his boss, Gorman, and put somewhere where he can do little harm. His job is to deliver the mail from Venus to Mars, so it’s pretty straightforward.   When he meets the Officer of the Deck, Celia Graham, he immediately becomes uncomfortable. He does not like to work with women in space, although it’s a pretty common occurrence. He holds a captain’s meeting the first day on the job, and he waits to meet his Engineering Officer, I.V. Hendricks. He makes a rude comment about how the man is late for his first meeting, but actually, the female Ivy has already shown up.   After meeting Ivy formally, he makes a comment about how the ship…
+- ref3: The narrative follows commander Strike as he begins his command of the spaceship Aphrodite. Strike comes from a long line of military greats but himself is prone to poor professional decision making.  As he takes command, the mission is a simple mail run. However, in the course of their journey, they receive word of two ships in dire need of rescue. Strike and his engineering officer, Ivy Hendricks, decide to use the ships extremely risky surge-circuit to aid the ships.  The rescue is a success and the crew is hailed for its bravery in saving the doomed vessels.
+- ref4: The story starts in a muddy swamp on Venus, where Strike, a Brevet Lieutenant Commander, is encountering his new ship, the Aphrodite, for the first time. Here on Venusport Base, he is introduced to the executive officer of the ship, a man who goes by Cob. Strike comes from a line of servicemen who were all well respected, but he himself has more of a reputation for causing trouble by saying the wrong things or deviating from mission plans. His reputation preceded him, as Cob had specific questions about some of these events. The Aphrodite was incredibly impressive when it was designed, but did not live up to its expectations. It had been refitted, and the new mission that Strike was to lead was a mail run between Venus and Mars. As he entered the ship, Strike began to meet his new crew, in…
+
+### 模型全文输出
+```
+<statement>The plot of the story is that Brevet Lieutenant Commander David Farragut Strykalski III is given command of the old, cantankerous surge-circuit monitor ship Aphrodite for a Venus-Mars mail run. He is unhappy about the assignment, having previously lost his previous command, the Ganymede, due to his actions. The ship has a reputation for being a "jinx ship" and causing problems for its crew. However, Strykalski and the new engineering officer, Ivy Hendricks, work well together and she manages to get the surge-circuit to work, which saves two warships that are falling into the sun. In the end, Strykalski and his crew are hailed as heroes and awarded medals. The story explores themes of redemption, second chances, and the power of teamwork and determination.<cite>[8-8][10-10][12-12]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 417], 共 417 句。
+引用指标: R=0.0, P=0.0, F1=0.0
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1768, completion_tokens=31
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The plot of the story is that Brevet Lieutenant Commander David Farragut Strykalski III is given command of the old, cantankerous surge-circuit monitor ship Aphrodite for a Venus-Mars mail run. He is unhappy about the assignment, having previously lost his previous command, the Ganymede, due to his actions. The ship has a reputation for being a "jinx ship" and causing problems for its crew. However, Strykalski and the new engineering officer, Ivy Hendricks, work well together and she manages to get the surge-circuit to work, which saves two warships that are falling into the sun. In the end, Strykalski and his crew are hailed as heroes and awarded medals. The story explores themes of redemption, second chances, and the power of teamwork and determination.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[8-8]`
+- au=0.6809419393539429, eu=0.19047614932060242, au′=0.680941104888916, eu′=0.04494381695985794
+- top_logits 方差 (pvariance, 有限 logit): 0.523718981861748
+- top_logits 数值: `[21.973684310913086, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.973684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.526315689086914 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+
+**跨度** `[10-10]`
+- au=0.6809419393539429, eu=0.19047614932060242, au′=0.680941104888916, eu′=0.04494381695985794
+- top_logits 方差 (pvariance, 有限 logit): 0.523718981861748
+- top_logits 数值: `[21.973684310913086, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.973684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.526315689086914 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+
+**跨度** `[12-12]`
+- au=0.6809419393539429, eu=0.19047614932060242, au′=0.680941104888916, eu′=0.04494381695985794
+- top_logits 方差 (pvariance, 有限 logit): 0.523718981861748
+- top_logits 数值: `[21.973684310913086, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.973684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.526315689086914 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+- GPT 引用1: span=[8, 8], relevant=0
+- GPT 引用2: span=[10, 10], relevant=0
+- GPT 引用3: span=[12, 12], relevant=0
+
+## squality_dev_idx1 (idx=1, squality_dev)
+### 问题
+Who is Ivy Hendricks and what happens to her throughout the story?
+
+### 参考答案（数据集）
+- ref1: Lieutenant Ivy Hendricks is the daughter of Harlan Hendricks, a formerly respected engineer. He created the surge-circuit, an innovation in interstellar astrogation, and he was awarded a Legion of Merit. He designed three famous ships: the Artemis, the Andromeda, and the Aphrodite, the prototype. Despite being hailed as the latest and greatest in technology, all three ships either exploded or failed.  According to Lieutenant Ivy Hendricks, their failures were due to the lack of education on board. She claimed that her father asked for the crew members to be trained in surge-circuit technology, so they could use it properly and correctly. That wish was not granted and after all three ships failed, his reputation and career were doomed. Admiral Gorman pulled the plug on his career and theref…
+- ref2: Lieutenant Ivy Hendricks is the new Engineering Officer on Aphrodite. Strike and Cob assume that Ivy is a man before she arrives because they are sexist and because her name is listed as I.V. in the orders. Ivy is actually the daughter of the man who designed the award-winning craft.  She is cold and unfriendly towards Strike after she meets him, and that’s probably because he makes a rude comment about the ship which her father created. After a couple weeks of working together, the two begin to get along very well. Strike admires Ivy’s piloting skills and her depth of knowledge about the Aphrodite.   The two also bond over their shared hatred of Strike’s former boss, Gorman. Strike feels as though he has ruined his career, and Ivy thinks that Gorman torpedoed her father’s career. Ivy want…
+- ref3: Ivy Hendricks is the engineering officer assigned to the Aphrodite. She is the daughter of Harlan Hendricks, the ship's original designer. She is fiercely protective of her father's legacy and resents Admiral Gorman for the way he treated him.  Hendricks and Strike, form an alliance of sorts after his initial surprise of seeing a woman assigned to this officer's role. When news arrives that two ships are in danger of falling into the sun, Ivy lobbies to use her father's technology to save the ship. Strike agrees to her plan although the risks are high. The Aphrodite eventually saves the ships although Ivy faints in the process from the heat and command has to be taken over by Strike.  The successful mission results in a promotion for Ivy as she works as a designer in the Bureau of Ships li…
+- ref4: Ivy Hendricks is the new engineering officer on the Aphrodite, having been transferred from the Antigone. She is a tall woman with dark hair and contrasting pale blue eyes, who has a very wide range of experience in ship operations and engineering. Her father, Harlan Hendricks, was the man who designed the Aphrodite, so she knows the ship needs a lot of specific training. At first, the captain did not expect her to be a woman, and managed to imply that many people found her father incompetent. Although she seemed cold at first, as she reacted to the situation, she and the captain eventually got along fairly well, as he learned to appreciate her wide skill set that ranged from engineering to piloting. Ivy and Strike also had a common enemy in the higher ranks: Space Admiral Gorman. Once Spi…
+
+### 模型全文输出
+```
+<statement>Ivy Hendricks is the daughter of Harlan Hendricks, the designer of the Tellurian Rocket Ship Aphrodite.<cite>[204-204][206-206]</cite></statement>
+
+<statement>She is a Lieutenant in the Solarian Navy and serves as the Engineering Officer on the Aphrodite.<cite></cite></statement>
+
+<statement>Throughout the story, Ivy is portrayed as highly skilled and knowledgeable about spaceship engineering, particularly the surge-circuit drive that her father designed.<cite>[204-204][212-212][214-214]</cite></statement>
+
+<statement>She clashes with Captain Strykalski at first, but they eventually work together well.<cite>[210-211]</cite></statement>
+
+<statement>Ivy is also determined to prove her father right and Space Admiral Gorman wrong, as she feels that Gorman ruined her father's career.<cite>[214-214]</cite></statement>
+
+<statement>During the rescue mission to save the Lachesis and Atropos from the sun, Ivy takes control of the Aphrodite and successfully uses the surge-circuit drive to pull the other ships to safety.<cite>[333-338][343-344][348-349]</cite></statement>
+
+<statement>However, she collapses from exhaustion after the mission is complete.<cite>[348-352]</cite></statement>
+
+<statement>After the rescue, Ivy is promoted to her father's old rank and leaves the Aphrodite to take a designing job with the Bureau of Ships.<cite>[409-409]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 417], 共 417 句。
+引用指标: R=0.5, P=0.4166666666666667, F1=0.45454545454545453
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=6622, completion_tokens=151
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Ivy Hendricks is the daughter of Harlan Hendricks, the designer of the Tellurian Rocket Ship Aphrodite.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[204-204]`
+- au=1.729960786178708e-06, eu=0.3089430034160614, au′=-0.0, eu′=0.04279278963804245
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 204 | 204 | 22.36842155456543 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+
+**跨度** `[206-206]`
+- au=1.729960786178708e-06, eu=0.3089430034160614, au′=-0.0, eu′=0.04279278963804245
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 204 | 204 | 22.36842155456543 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+- GPT 引用1: span=[204, 204], relevant=0
+- GPT 引用2: span=[206, 206], relevant=1
+
+### 陈述 1
+She is a Lieutenant in the Solarian Navy and serves as the Engineering Officer on the Aphrodite.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+### 陈述 2
+Throughout the story, Ivy is portrayed as highly skilled and knowledgeable about spaceship engineering, particularly the surge-circuit drive that her father designed.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[204-204]`
+- au=0.6811845302581787, eu=0.19437336921691895, au′=0.6811837553977966, eu′=0.046032704412937164
+- top_logits 方差 (pvariance, 有限 logit): 0.03895437288156245
+- top_logits 数值: `[20.921052932739258, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 212 | 212 | 20.921052932739258 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 2 | 204 | 204 | 20.526315689086914 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+
+**跨度** `[212-212]`
+- au=0.6811845302581787, eu=0.19437336921691895, au′=0.6811837553977966, eu′=0.046032704412937164
+- top_logits 方差 (pvariance, 有限 logit): 0.03895437288156245
+- top_logits 数值: `[20.921052932739258, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 212 | 212 | 20.921052932739258 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 2 | 204 | 204 | 20.526315689086914 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+
+**跨度** `[214-214]`
+- au=0.6811845302581787, eu=0.19437336921691895, au′=0.6811837553977966, eu′=0.046032704412937164
+- top_logits 方差 (pvariance, 有限 logit): 0.03895437288156245
+- top_logits 数值: `[20.921052932739258, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 212 | 212 | 20.921052932739258 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 2 | 204 | 204 | 20.526315689086914 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+- GPT 引用1: span=[204, 204], relevant=0
+- GPT 引用2: span=[212, 212], relevant=1
+- GPT 引用3: span=[214, 214], relevant=0
+
+### 陈述 3
+She clashes with Captain Strykalski at first, but they eventually work together well.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[210-211]`
+- au=1.7698789633868728e-06, eu=0.31666654348373413, au′=-0.0, eu′=0.044289037585258484
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 210 | 210 | 21.578948974609375 | The Aphrodite rumbled on toward the orbit of Mercury....  For all the tension between the occupants of the flying-bridge, Strike and Ivy Hendricks worked well together. |
+- GPT 引用1: span=[210, 211], relevant=1
+
+### 陈述 4
+Ivy is also determined to prove her father right and Space Admiral Gorman wrong, as she feels that Gorman ruined her father's career.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[214-214]`
+- au=1.5962523320922628e-06, eu=0.28252777457237244, au′=-0.0, eu′=0.03788633644580841
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[25.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 214 | 214 | 25.394737243652344 | And finally, Ivy hated old Brass-bottom Gorman even more than Strike did. |
+- GPT 引用1: span=[214, 214], relevant=0
+
+### 陈述 5
+During the rescue mission to save the Lachesis and Atropos from the sun, Ivy takes control of the Aphrodite and successfully uses the surge-circuit drive to pull the other ships to safety.
+- GPT support_score=0.5; **Rating: [[Partially supported]]**
+
+**跨度** `[333-338]`
+- au=2.1721019744873047, eu=0.05801525339484215, au′=2.1721019744873047, eu′=0.05251841992139816
+- top_logits 方差 (pvariance, 有限 logit): 0.48262689015892746
+- top_logits 数值: `[19.342105865478516, 18.552631378173828, 18.552631378173828, 18.157896041870117, 18.026315689086914, 17.894737243652344, 17.763158798217773, 17.10526466369629, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 19.342105865478516 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 2 | 334 | 334 | 18.552631378173828 | In her flying-bridge, Strike and Ivy Hendricks watched the stricken ships in the darkened viewport. |
+| 3 | 204 | 204 | 18.552631378173828 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+| 4 | 324 | 324 | 18.157896041870117 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 250 | 250 | 18.026315689086914 | "This is it ! |
+| 6 | 338 | 338 | 17.894737243652344 | Strike watched her with apprehension. |
+| 7 | 267 | 267 | 17.763158798217773 | "But we can save those ships! |
+| 8 | 212 | 212 | 17.10526466369629 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 9 | 323 | 323 | 16.973684310913086 | She nodded silently and took her place at the control panel. |
+
+**跨度** `[343-344]`
+- au=2.1721019744873047, eu=0.05801525339484215, au′=2.1721019744873047, eu′=0.05251841992139816
+- top_logits 方差 (pvariance, 有限 logit): 0.48262689015892746
+- top_logits 数值: `[19.342105865478516, 18.552631378173828, 18.552631378173828, 18.157896041870117, 18.026315689086914, 17.894737243652344, 17.763158798217773, 17.10526466369629, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 19.342105865478516 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 2 | 334 | 334 | 18.552631378173828 | In her flying-bridge, Strike and Ivy Hendricks watched the stricken ships in the darkened viewport. |
+| 3 | 204 | 204 | 18.552631378173828 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+| 4 | 324 | 324 | 18.157896041870117 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 250 | 250 | 18.026315689086914 | "This is it ! |
+| 6 | 338 | 338 | 17.894737243652344 | Strike watched her with apprehension. |
+| 7 | 267 | 267 | 17.763158798217773 | "But we can save those ships! |
+| 8 | 212 | 212 | 17.10526466369629 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 9 | 323 | 323 | 16.973684310913086 | She nodded silently and took her place at the control panel. |
+
+**跨度** `[348-349]`
+- au=2.1721019744873047, eu=0.05801525339484215, au′=2.1721019744873047, eu′=0.05251841992139816
+- top_logits 方差 (pvariance, 有限 logit): 0.48262689015892746
+- top_logits 数值: `[19.342105865478516, 18.552631378173828, 18.552631378173828, 18.157896041870117, 18.026315689086914, 17.894737243652344, 17.763158798217773, 17.10526466369629, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 19.342105865478516 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 2 | 334 | 334 | 18.552631378173828 | In her flying-bridge, Strike and Ivy Hendricks watched the stricken ships in the darkened viewport. |
+| 3 | 204 | 204 | 18.552631378173828 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+| 4 | 324 | 324 | 18.157896041870117 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 250 | 250 | 18.026315689086914 | "This is it ! |
+| 6 | 338 | 338 | 17.894737243652344 | Strike watched her with apprehension. |
+| 7 | 267 | 267 | 17.763158798217773 | "But we can save those ships! |
+| 8 | 212 | 212 | 17.10526466369629 | Ivy spent whatever time she could spare tinkering with her father's pet surge-circuit and Strike began to realize that there was little she did not know about spaceship engineering. |
+| 9 | 323 | 323 | 16.973684310913086 | She nodded silently and took her place at the control panel. |
+- GPT 引用1: span=[333, 338], relevant=0
+- GPT 引用2: span=[343, 344], relevant=0
+- GPT 引用3: span=[348, 349], relevant=0
+
+### 陈述 6
+However, she collapses from exhaustion after the mission is complete.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[348-352]`
+- au=1.369163990020752, eu=0.10312074422836304, au′=1.369163990020752, eu′=0.04396875575184822
+- top_logits 方差 (pvariance, 有限 logit): 0.046528729705642036
+- top_logits 数值: `[22.10526466369629, 21.710527420043945, 21.578948974609375, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 348 | 348 | 22.10526466369629 | Ivy fought her reeling senses and the bucking ship as the slack came out of the cable. |
+| 2 | 351 | 351 | 21.710527420043945 | Shudderingly, she made the effort ... and failed. |
+| 3 | 352 | 352 | 21.578948974609375 | Conscious, but too spent to move, she collapsed over the blistering hot instrument panel.  " |
+| 4 | 355 | 355 | 21.578948974609375 | "I ... I ... can't make it ... Strike. |
+- GPT 引用1: span=[348, 352], relevant=1
+
+### 陈述 7
+After the rescue, Ivy is promoted to her father's old rank and leaves the Aphrodite to take a designing job with the Bureau of Ships.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[409-409]`
+- au=1.650961507948523e-06, eu=0.2934361696243286, au′=-0.0, eu′=0.03987407684326172
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.078948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 409 | 409 | 24.078948974609375 | "She's gone to the Bureau of Ships with a designing job." |
+- GPT 引用1: span=[409, 409], relevant=1
+
+## squality_dev_idx2 (idx=2, squality_dev)
+### 问题
+What is the relationship between Strike and Aphrodite?
+
+### 参考答案（数据集）
+- ref1: Strike is a member of a famous, well-behaved, and well-trained service family. His father and grandfather served in World War II and the Atomic War, respectively. Both earned medals for their heroic service. Strike, however, did not follow in his family’s footsteps.  	With a tendency to say the wrong thing at the wrong time, Strike often offended those around him and garnered a negative reputation. After being put in charge of the Ganymede, he soon lost his position after abandoning his station to rescue colonists who were not in danger. As well, he accused a Martian Ambassador of being a spy at a respectable ball. Admiral Gorman soon demoted him, and he became the commander of the Aphrodite.  	At first, Strike was not a fan. He sees her as ugly, fat, and cantankerous. He misses the Ganyme…
+- ref2: Strike is completely unimpressed by the rocket ship Aphrodite. He comments that she looks like a pregnant carp, and he knows that he’s been assigned captain of the ship because he messed up terribly on his other missions.   Aphrodite was built 10 years ago, and now she is completely outdated and a laughing stock compared to the other spaceships in the fleet.  She was designed by Harlan Hendricks, and the engineer received a Legion of Merit award for her design.   Strike’s mission is to fly Aphrodite to take the mail from Venusport to Canalopolis, Mars. It’s boring and straightforward.  When a disaster occurs and two other ships, the Atropos and the Lachesis, are in serious danger of getting too close to the sun, Strike agrees to take the old girl on a rescue mission. He is convinced by Ivy…
+- ref3: Strike is assigned to be commander of the spaceship Aphrodite. The ship is assigned as a mail carrier for the inner part of the solar system. The Aphrodite is a dilapidated design with an awful reputation. Strike ended up with the Aphrodite as a result of a series of poor professional decisions that resulted in him getting command of the more prestigious ship Ganymede taken away from him.  His initial impression of the Aphrodite softens to a grudging respect after the successful mission to save the Atropos and Lachesis. Although he presumably is in line to command the Ganymede again, another faux pas resulting in Strike continuing to command the Aphrodite.
+- ref4: At the beginning of the story, Strike is very reluctant to accept Aphrodite, because being in charge of the ship means a demotion for him. His perception of the ship at the beginning of the story is colored by this history, and his first impression of the ship is not a positive one, even from the outside. Besides the actual construction of the ship, the technology that ran it was not something he showed much faith in. The first week that he was in charge after leaving Venus, it seemed things were going drastically wrong. When one important piece of equipment burnt out, the ship went into freefall, requiring a lot of repair work from the engineers, and anyone in charge of navigation was handed more work because of this as well. The ship was really put to the test when the Aphrodite responde…
+
+### 模型全文输出
+```
+<statement>Based on the story, it seems that Strike has a complicated relationship with Aphrodite.<cite></cite></statement>
+
+<statement>He initially views her as a jinx ship and an inferior vessel compared to his previous command, the Ganymede. He describes her as old, ungainly, and a "pregnant carp."<cite>[8-8][14-14][16-16]</cite></statement>
+
+<statement>However, as he works with her and gets to know her, he comes to respect her capabilities and loyalty. He states that she is "loose" and can take the heat of the mission.<cite>[77-77][178-178]</cite></statement>
+
+<statement>Strike also bonds with Aphrodite in a way he cannot with other ships, likely due to the shared history of being considered failures by others. He states he doesn't want to leave her when the mission is over.<cite>[77-80][401-402]</cite></statement>
+
+<statement>So in summary, Strike starts out viewing Aphrodite as a flawed vessel but comes to respect and bond with her, seeing her as a loyal companion through their shared struggles. He even states he doesn't want to leave her when the mission is over.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 417], 共 417 句。
+引用指标: R=0.4, P=0.14285714285714285, F1=0.21052631578947364
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=3973, completion_tokens=101
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, it seems that Strike has a complicated relationship with Aphrodite.
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+He initially views her as a jinx ship and an inferior vessel compared to his previous command, the Ganymede. He describes her as old, ungainly, and a "pregnant carp."
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[8-8]`
+- au=1.0830402374267578, eu=0.1340387910604477, au′=1.0830401182174683, eu′=0.04437524080276489
+- top_logits 方差 (pvariance, 有限 logit): 0.23468809224707204
+- top_logits 数值: `[22.10526466369629, 21.578948974609375, 20.921052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 22.10526466369629 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 81 | 81 | 21.578948974609375 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 3 | 14 | 14 | 20.921052932739258 | The scaly bulk of the Tellurian Rocket Ship Aphrodite loomed unhappily into the thick air above the two men as they reached the ventral valve. |
+
+**跨度** `[14-14]`
+- au=1.0830402374267578, eu=0.1340387910604477, au′=1.0830401182174683, eu′=0.04437524080276489
+- top_logits 方差 (pvariance, 有限 logit): 0.23468809224707204
+- top_logits 数值: `[22.10526466369629, 21.578948974609375, 20.921052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 22.10526466369629 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 81 | 81 | 21.578948974609375 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 3 | 14 | 14 | 20.921052932739258 | The scaly bulk of the Tellurian Rocket Ship Aphrodite loomed unhappily into the thick air above the two men as they reached the ventral valve. |
+
+**跨度** `[16-16]`
+- au=1.0830402374267578, eu=0.1340387910604477, au′=1.0830401182174683, eu′=0.04437524080276489
+- top_logits 方差 (pvariance, 有限 logit): 0.23468809224707204
+- top_logits 数值: `[22.10526466369629, 21.578948974609375, 20.921052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 22.10526466369629 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 81 | 81 | 21.578948974609375 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 3 | 14 | 14 | 20.921052932739258 | The scaly bulk of the Tellurian Rocket Ship Aphrodite loomed unhappily into the thick air above the two men as they reached the ventral valve. |
+- GPT 引用1: span=[8, 8], relevant=0
+- GPT 引用2: span=[14, 14], relevant=0
+- GPT 引用3: span=[16, 16], relevant=1
+
+### 陈述 2
+However, as he works with her and gets to know her, he comes to respect her capabilities and loyalty. He states that she is "loose" and can take the heat of the mission.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[77-77]`
+- au=1.0825217962265015, eu=0.13768112659454346, au′=1.082521677017212, eu′=0.045709699392318726
+- top_logits 方差 (pvariance, 有限 logit): 0.25777205352480653
+- top_logits 数值: `[21.578948974609375, 20.657896041870117, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 77 | 77 | 21.578948974609375 | "Strike, I think you're going to like our old tin pot here." |
+| 2 | 79 | 79 | 20.657896041870117 | "She's old ... but she's loose. |
+| 3 | 78 | 78 | 20.394737243652344 | He patted the Aphrodite's nether belly affectionately. |
+
+**跨度** `[178-178]`
+- au=1.0825217962265015, eu=0.13768112659454346, au′=1.082521677017212, eu′=0.045709699392318726
+- top_logits 方差 (pvariance, 有限 logit): 0.25777205352480653
+- top_logits 数值: `[21.578948974609375, 20.657896041870117, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 77 | 77 | 21.578948974609375 | "Strike, I think you're going to like our old tin pot here." |
+| 2 | 79 | 79 | 20.657896041870117 | "She's old ... but she's loose. |
+| 3 | 78 | 78 | 20.394737243652344 | He patted the Aphrodite's nether belly affectionately. |
+- GPT 引用1: span=[77, 77], relevant=0
+- GPT 引用2: span=[178, 178], relevant=0
+
+### 陈述 3
+Strike also bonds with Aphrodite in a way he cannot with other ships, likely due to the shared history of being considered failures by others. He states he doesn't want to leave her when the mission is over.
+- GPT support_score=0.5; **Rating: [[Partially supported]]**
+
+**跨度** `[77-80]`
+- au=0.6817951202392578, eu=0.18673212826251984, au′=0.681794285774231, eu′=0.04390525445342064
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[21.842105865478516, 21.710527420043945]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 401 | 401 | 21.842105865478516 | You've fallen for old Lover-Girl and you don't want to leave her. |
+| 2 | 77 | 77 | 21.710527420043945 | "Strike, I think you're going to like our old tin pot here." |
+
+**跨度** `[401-402]`
+- au=0.6817951202392578, eu=0.18673212826251984, au′=0.681794285774231, eu′=0.04390525445342064
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[21.842105865478516, 21.710527420043945]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 401 | 401 | 21.842105865478516 | You've fallen for old Lover-Girl and you don't want to leave her. |
+| 2 | 77 | 77 | 21.710527420043945 | "Strike, I think you're going to like our old tin pot here." |
+- GPT 引用1: span=[77, 80], relevant=0
+- GPT 引用2: span=[401, 402], relevant=0
+
+### 陈述 4
+So in summary, Strike starts out viewing Aphrodite as a flawed vessel but comes to respect and bond with her, seeing her as a loyal companion through their shared struggles. He even states he doesn't want to leave her when the mission is over.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+## squality_dev_idx3 (idx=3, squality_dev)
+### 问题
+Describe the setting of the story.
+
+### 参考答案（数据集）
+- ref1: Jinx Ship to the Rescue by Alfred Coppel, Jr. takes place in space, but more specifically in the Aphrodite.  	It starts in the muddy Venusport Base on Venus. Venusport is famous for its warm, slimy, and green rain that falls for 480 hours of every day. A fog rolls in and degrades visibility.  	Despite starting on Venusport Base, the characters actually spend most of their time onboard the Aphrodite, a Tellurian Rocket Ship. The Aphrodite had a surge-circuit monitor of twenty guns built into her frame. She was bulky, fat, and ugly, and occasionally had some technical and mechanical struggles as well.  	Although her frame may not be appealing, she soon becomes victorious as she gains the trust of Strike and other members of his crew and saves two fallen dreadnaughts. With her surge-circuit r…
+- ref2: The story starts on the planet of Venus. Venus has days that are 720 hours long, and rain is common. The rain is hot, slimy, and green, and it makes the already wet swamplands even more mushy. Fog is common on Venus.  The middle of the story takes place on the old and outdated ship, Aphrodite. She gives the crew members a lot of trouble on their first mission. She is in dire need of repairs, she’s slow, and it’s impossible to control her temperature. The crew members are unable to wear their uniforms because the temperature is over 100 degrees.   Aphrodite’s mission is simple. She needs to take the mail from Venus to Mars, and it’s the only thing she can be trusted to do successfully. So it’s very impressive when she ends up being the hero of the day and manages to rescue two other ships t…
+- ref3: The narrative is set in the early 21st century primarily aboard the spaceship Aphrodite. The ship's mission is to deliver mail in the inner part of the solar system.  The ships route takes them around the sun and as a result the ambient temperature inside the ship begins to rise to intolerable levels due to proximity to the sun. Because of the heat, the coed crew is allowed to operate with very little clothing. Aphrodite is a ship of an outdated design that gives it a lack of comfort and subjects it to numerous small problems that make its operation frustrating.
+- ref4: The story starts at a spaceport on Venus, where it has been raining for hundreds of hours straight. The rain has stopped by the time the story starts, but it is left a lot of mud in the swampy marshes. It was nearing the end of the day, and the fog was enveloping the surroundings as it grew darker outside. It was hot and sticky at Venusport Base, but after Strike left the service on his mission in the Aphrodite, it would only grow hotter on board. The ship itself, where most of the story takes place, is an older, refitted, bulky type of ship. There were only two others like it, and their designer had been awarded a Legion of Merit for the three. However, this is the only one still in use, as the others were destroyed in a much earlier mission. Strike’s disappointment in the ship seems to m…
+
+### 模型全文输出
+```
+<statement>The story is set in the Solar System, specifically in the Venus-Mars region. It takes place in the mid-20th century, after World War II and the Atomic War of 1961, but before the Ionian Subjugation Incident. The characters are part of the Tellurian Wing, Combined Solarian Navies, which is a joint military force of Earth and its colonies.<cite>[8-8][40-40][41-41]</cite></statement>
+
+<statement>The story focuses on the Venusian Base of Venusport, which is a swampy and unpleasant place with a miasmic fog and slimy rain. The characters are aboard the Tellurian Rocket Ship Aphrodite, which is an old and unreliable monitor ship that is being used for mail runs between Venus and Mars. The ship is nicknamed "Lover-Girl" and is considered a "jinx ship" because it has a history of accidents and failures.<cite>[8-11][14-14][18-18]</cite></statement>
+
+<statement>The characters are involved in a rescue mission to save two dreadnaughts, the Lachesis and the Atropos, which are in danger of falling into the sun. The mission requires them to use the ship's experimental surge-circuit drive, which has a history of blowing up, in order to pull the dreadnaughts to safety. The mission is successful, but it comes at a great cost to the Aphrodite and its crew.<cite>[222-224][234-238][340-342]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 417], 共 417 句。
+引用指标: R=0.5, P=0.375, F1=0.42857142857142855
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=4584, completion_tokens=82
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The story is set in the Solar System, specifically in the Venus-Mars region. It takes place in the mid-20th century, after World War II and the Atomic War of 1961, but before the Ionian Subjugation Incident. The characters are part of the Tellurian Wing, Combined Solarian Navies, which is a joint military force of Earth and its colonies.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[8-8]`
+- au=1.3679311275482178, eu=0.10872673988342285, au′=1.3679308891296387, eu′=0.04652585834264755
+- top_logits 方差 (pvariance, 有限 logit): 0.21100222569111793
+- top_logits 数值: `[21.052631378173828, 20.789474487304688, 20.263158798217773, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.052631378173828 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.789474487304688 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+| 3 | 6 | 6 | 20.263158798217773 | Extensive research did not uncover any evidence that the U.S. |
+| 4 | 5 | 5 | 19.86842155456543 | [Transcriber's Note: This etext was produced from Planet Stories Winter 1948. |
+
+**跨度** `[40-40]`
+- au=1.3679311275482178, eu=0.10872673988342285, au′=1.3679308891296387, eu′=0.04652585834264755
+- top_logits 方差 (pvariance, 有限 logit): 0.21100222569111793
+- top_logits 数值: `[21.052631378173828, 20.789474487304688, 20.263158798217773, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.052631378173828 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.789474487304688 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+| 3 | 6 | 6 | 20.263158798217773 | Extensive research did not uncover any evidence that the U.S. |
+| 4 | 5 | 5 | 19.86842155456543 | [Transcriber's Note: This etext was produced from Planet Stories Winter 1948. |
+
+**跨度** `[41-41]`
+- au=1.3679311275482178, eu=0.10872673988342285, au′=1.3679308891296387, eu′=0.04652585834264755
+- top_logits 方差 (pvariance, 有限 logit): 0.21100222569111793
+- top_logits 数值: `[21.052631378173828, 20.789474487304688, 20.263158798217773, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 21.052631378173828 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+| 2 | 1 | 1 | 20.789474487304688 | Jinx Ship To The Rescue   By ALFRED COPPEL, JR. |
+| 3 | 6 | 6 | 20.263158798217773 | Extensive research did not uncover any evidence that the U.S. |
+| 4 | 5 | 5 | 19.86842155456543 | [Transcriber's Note: This etext was produced from Planet Stories Winter 1948. |
+- GPT 引用1: span=[8, 8], relevant=1
+- GPT 引用2: span=[40, 41], relevant=0
+
+### 陈述 1
+The story focuses on the Venusian Base of Venusport, which is a swampy and unpleasant place with a miasmic fog and slimy rain. The characters are aboard the Tellurian Rocket Ship Aphrodite, which is an old and unreliable monitor ship that is being used for mail runs between Venus and Mars. The ship is nicknamed "Lover-Girl" and is considered a "jinx ship" because it has a history of accidents and failures.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[8-11]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 24.473684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+
+**跨度** `[14-14]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 24.473684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+
+**跨度** `[18-18]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 24.473684310913086 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+- GPT 引用1: span=[8, 11], relevant=1
+- GPT 引用2: span=[14, 14], relevant=0
+- GPT 引用3: span=[18, 18], relevant=0
+
+### 陈述 2
+The characters are involved in a rescue mission to save two dreadnaughts, the Lachesis and the Atropos, which are in danger of falling into the sun. The mission requires them to use the ship's experimental surge-circuit drive, which has a history of blowing up, in order to pull the dreadnaughts to safety. The mission is successful, but it comes at a great cost to the Aphrodite and its crew.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[222-224]`
+- au=2.2785885334014893, eu=0.050131916999816895, au′=2.27858829498291, eu′=0.050131916999816895
+- top_logits 方差 (pvariance, 有限 logit): 0.34279757787666315
+- top_logits 数值: `[20.0, 19.60526466369629, 19.473684310913086, 19.210527420043945, 18.8157901763916, 18.8157901763916, 18.8157901763916, 18.289474487304688, 18.289474487304688, 18.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 20.0 | Cob was in the radio room when Sparks pulled the flimsy from the scrambler. |
+| 2 | 233 | 233 | 19.60526466369629 | The ratings were grumbling about the food....  And then it happened. |
+| 3 | 222 | 222 | 19.473684310913086 | Strike was in the observation blister forward, when Ensign Graham called to say that she had picked up a radar contact sunward. |
+| 4 | 324 | 324 | 19.210527420043945 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 235 | 235 | 18.8157901763916 | It was a distress signal from the Lachesis . |
+| 6 | 223 | 223 | 18.8157901763916 | The IFF showed the pips to be the Lachesis and the Atropos . |
+| 7 | 236 | 236 | 18.8157901763916 | The Atropos had burst a fission chamber and was falling into the sun. |
+| 8 | 225 | 225 | 18.289474487304688 | But the thing that made Strike curse under his breath was Celia Graham's notation that the Atropos carried none other than Space Admiral Horatio Gorman, Cominch Inplan. |
+| 9 | 333 | 333 | 18.289474487304688 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 10 | 228 | 228 | 18.157896041870117 | Old Aphrodisiac had reached perihelion when it happened. |
+
+**跨度** `[234-238]`
+- au=2.2785885334014893, eu=0.050131916999816895, au′=2.27858829498291, eu′=0.050131916999816895
+- top_logits 方差 (pvariance, 有限 logit): 0.34279757787666315
+- top_logits 数值: `[20.0, 19.60526466369629, 19.473684310913086, 19.210527420043945, 18.8157901763916, 18.8157901763916, 18.8157901763916, 18.289474487304688, 18.289474487304688, 18.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 20.0 | Cob was in the radio room when Sparks pulled the flimsy from the scrambler. |
+| 2 | 233 | 233 | 19.60526466369629 | The ratings were grumbling about the food....  And then it happened. |
+| 3 | 222 | 222 | 19.473684310913086 | Strike was in the observation blister forward, when Ensign Graham called to say that she had picked up a radar contact sunward. |
+| 4 | 324 | 324 | 19.210527420043945 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 235 | 235 | 18.8157901763916 | It was a distress signal from the Lachesis . |
+| 6 | 223 | 223 | 18.8157901763916 | The IFF showed the pips to be the Lachesis and the Atropos . |
+| 7 | 236 | 236 | 18.8157901763916 | The Atropos had burst a fission chamber and was falling into the sun. |
+| 8 | 225 | 225 | 18.289474487304688 | But the thing that made Strike curse under his breath was Celia Graham's notation that the Atropos carried none other than Space Admiral Horatio Gorman, Cominch Inplan. |
+| 9 | 333 | 333 | 18.289474487304688 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 10 | 228 | 228 | 18.157896041870117 | Old Aphrodisiac had reached perihelion when it happened. |
+
+**跨度** `[340-342]`
+- au=2.2785885334014893, eu=0.050131916999816895, au′=2.27858829498291, eu′=0.050131916999816895
+- top_logits 方差 (pvariance, 有限 logit): 0.34279757787666315
+- top_logits 数值: `[20.0, 19.60526466369629, 19.473684310913086, 19.210527420043945, 18.8157901763916, 18.8157901763916, 18.8157901763916, 18.289474487304688, 18.289474487304688, 18.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 20.0 | Cob was in the radio room when Sparks pulled the flimsy from the scrambler. |
+| 2 | 233 | 233 | 19.60526466369629 | The ratings were grumbling about the food....  And then it happened. |
+| 3 | 222 | 222 | 19.473684310913086 | Strike was in the observation blister forward, when Ensign Graham called to say that she had picked up a radar contact sunward. |
+| 4 | 324 | 324 | 19.210527420043945 | Smoothly she turned old Aphrodisiac's nose sunward....     Lashed together with a length of unbreakable beryllium steel cable, the Lachesis and the Atropos fell helplessly toward the sun. |
+| 5 | 235 | 235 | 18.8157901763916 | It was a distress signal from the Lachesis . |
+| 6 | 223 | 223 | 18.8157901763916 | The IFF showed the pips to be the Lachesis and the Atropos . |
+| 7 | 236 | 236 | 18.8157901763916 | The Atropos had burst a fission chamber and was falling into the sun. |
+| 8 | 225 | 225 | 18.289474487304688 | But the thing that made Strike curse under his breath was Celia Graham's notation that the Atropos carried none other than Space Admiral Horatio Gorman, Cominch Inplan. |
+| 9 | 333 | 333 | 18.289474487304688 | Swiftly, the fat, ungainly shape of old Aphrodisiac drew near. |
+| 10 | 228 | 228 | 18.157896041870117 | Old Aphrodisiac had reached perihelion when it happened. |
+- GPT 引用1: span=[222, 224], relevant=0
+- GPT 引用2: span=[234, 238], relevant=1
+- GPT 引用3: span=[340, 342], relevant=0
+
+## squality_dev_idx4 (idx=4, squality_dev)
+### 问题
+Who is Strike and what happens to him throughout the story?
+
+### 参考答案（数据集）
+- ref1: Strike is a member of an esteemed service family on Venus; seven generations of well-behaved and well-trained operators. Unfortunately, Strike struggles to carry on the family tradition, and is known for misspeaking and offending those around him. By trusting his gut, he wound up failing his higher-ups and crew several times. All this culminated in an eventual mistrust of Strike, which led to him being charged with the Aphrodite.  	His deep hatred of Space Admiral Gordon is passionate, but not without reason. Gordon is the one who demoted him to the Aphrodite. At the start, Strike is checking out his new vessel and notes how ugly the ship is. After examining the ship and it’s crew, it is revealed that Strike is uncomfortable around women and believes they don’t belong on a spaceship.  	In …
+- ref2: Strike’s real name is Brevet Lieutenant Commander David Farragut Strykalski III. After serving on the Ganymede, he is put in charge of the Aphrodite. He comes from many generations of officers. However, he doesn’t feel like he fits the mold of his grandfather and great-grandfather and so on. His boss, Gorman, disagreed with several decisions he made in the past and sent him to work on the Aphrodite, the unimpressive spaceship.  Strike does not like working with women in space, so he is disappointed when two of his crew members are powerful and successful females. He learns his lesson after working with Ivy Hendricks for a few weeks. She impresses him with her piloting skills and her knowledge of the ship that her father designed.   Strike is skeptical at first when Ivy wants to take Aphrod…
+- ref3: Strike is the commander of the Aphrodite. He was originally the commander of the prestigious Ganymede. However a number of decisions made out of bravado as well as some unprofessional comments lost him that command.  Now in command of a dilapidated ship, Strike comes to terms with his job. He commands a crew including a large number of women which makes him somewhat uncomfortable. His engineering officer Ivy Hendricks in particular seems to be of romantic interest to Strike.  Strike ends up teaming with Ivy to save two ships from falling into the sun earning him a small promotion but an ill-advised comment prevents him from leaving the Aphrodite, perhaps to the satisfaction of Strike himself.
+- ref4: Strike is a highly decorated lieutenant commander in the Navy, who comes from a long line of ship operators. Although he has run many successful missions, he has a reputation of causing trouble—his new Executive Officer, Cob, has heard a number of stories that he asks Strike for details about. Strike has lost command of the ship that he had been captaining, and is sent by Admiral Gorman to captain a mail route on the Aphrodite. He is extremely hesitant to have any positive feelings about the experience, from the ship itself, to the inclusion of women on its crew. Not only is this not the type of ship he is used to, he is never served with women on board. He has to navigate adapting to the new situation while adapting to the new job. Through the first week of his assignment, the ship and it…
+
+### 模型全文输出
+```
+<statement>Based on the story, Strike is Brevet Lieutenant Commander David Farragut Strykalski III. He is the new commander of the Tellurian Rocket Ship Aphrodite.<cite>[8-8]</cite></statement>
+
+<statement>Throughout the story, Strike faces challenges and adversity. He initially feels uncomfortable with the female crew members and the outdated Aphrodite ship. He also struggles with his past mistakes and conflicts with Space Admiral Gorman.<cite>[120-121][128-128][194-194]</cite></statement>
+
+<statement>However, Strike eventually learns to work with his new crew and the ship's new engineering officer, Ivy Hendricks. Together they successfully complete their dangerous rescue mission to save the Atropos and Lachesis warships from falling into the sun.<cite>[210-214][216-216][250-256]</cite></statement>
+
+<statement>Despite the mission's success, Strike still has personal conflicts and is not promoted as he had hoped. He also loses his crew and the ship he had grown to like. However, he does gain a new respect for Ivy and the Aphrodite crew. Strike ends the story feeling defeated but also more mature and humbled by the experiences he faced.<cite>[206-206][207-207][208-208]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 417], 共 417 句。
+引用指标: R=0.375, P=0.375, F1=0.375
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=4372, completion_tokens=91
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, Strike is Brevet Lieutenant Commander David Farragut Strykalski III. He is the new commander of the Tellurian Rocket Ship Aphrodite.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[8-8]`
+- au=1.6396279534092173e-06, eu=0.2911876440048218, au′=-0.0, eu′=0.039460018277168274
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.342105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 24.342105865478516 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+- GPT 引用1: span=[8, 8], relevant=1
+
+### 陈述 1
+Throughout the story, Strike faces challenges and adversity. He initially feels uncomfortable with the female crew members and the outdated Aphrodite ship. He also struggles with his past mistakes and conflicts with Space Admiral Gorman.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[120-121]`
+- au=0.6815382242202759, eu=0.18999993801116943, au′=0.681537389755249, eu′=0.04481131583452225
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[21.447368621826172, 21.18421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 120 | 120 | 21.447368621826172 | Strike felt vaguely uncomfortable. |
+| 2 | 8 | 8 | 21.18421173095703 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+
+**跨度** `[128-128]`
+- au=0.6815382242202759, eu=0.18999993801116943, au′=0.681537389755249, eu′=0.04481131583452225
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[21.447368621826172, 21.18421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 120 | 120 | 21.447368621826172 | Strike felt vaguely uncomfortable. |
+| 2 | 8 | 8 | 21.18421173095703 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+
+**跨度** `[194-194]`
+- au=0.6815382242202759, eu=0.18999993801116943, au′=0.681537389755249, eu′=0.04481131583452225
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[21.447368621826172, 21.18421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 120 | 120 | 21.447368621826172 | Strike felt vaguely uncomfortable. |
+| 2 | 8 | 8 | 21.18421173095703 | Brevet Lieutenant Commander David Farragut Strykalski III of the Tellurian Wing, Combined Solarian Navies, stood ankle deep in the viscous mud of Venusport Base and surveyed his new command with a jaundiced eye. |
+- GPT 引用1: span=[120, 121], relevant=1
+- GPT 引用2: span=[128, 128], relevant=0
+- GPT 引用3: span=[194, 194], relevant=0
+
+### 陈述 2
+However, Strike eventually learns to work with his new crew and the ship's new engineering officer, Ivy Hendricks. Together they successfully complete their dangerous rescue mission to save the Atropos and Lachesis warships from falling into the sun.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[210-214]`
+- au=0.6777775883674622, eu=0.20596198737621307, au′=0.6777766942977905, eu′=0.049318619072437286
+- top_logits 方差 (pvariance, 有限 logit): 1.9087616360420725
+- top_logits 数值: `[20.657896041870117, 17.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 210 | 210 | 20.657896041870117 | The Aphrodite rumbled on toward the orbit of Mercury....  For all the tension between the occupants of the flying-bridge, Strike and Ivy Hendricks worked well together. |
+| 2 | 204 | 204 | 17.894737243652344 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+
+**跨度** `[216-216]`
+- au=0.6777775883674622, eu=0.20596198737621307, au′=0.6777766942977905, eu′=0.049318619072437286
+- top_logits 方差 (pvariance, 有限 logit): 1.9087616360420725
+- top_logits 数值: `[20.657896041870117, 17.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 210 | 210 | 20.657896041870117 | The Aphrodite rumbled on toward the orbit of Mercury....  For all the tension between the occupants of the flying-bridge, Strike and Ivy Hendricks worked well together. |
+| 2 | 204 | 204 | 17.894737243652344 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+
+**跨度** `[250-256]`
+- au=0.6777775883674622, eu=0.20596198737621307, au′=0.6777766942977905, eu′=0.049318619072437286
+- top_logits 方差 (pvariance, 有限 logit): 1.9087616360420725
+- top_logits 数值: `[20.657896041870117, 17.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 210 | 210 | 20.657896041870117 | The Aphrodite rumbled on toward the orbit of Mercury....  For all the tension between the occupants of the flying-bridge, Strike and Ivy Hendricks worked well together. |
+| 2 | 204 | 204 | 17.894737243652344 | "If I may have your permission to inspect the drives, Captain, I may be able to convince you that the designer of this vessel was not ... as you seem to think ... a senile incompetent." |
+- GPT 引用1: span=[210, 214], relevant=0
+- GPT 引用2: span=[216, 216], relevant=0
+- GPT 引用3: span=[250, 256], relevant=1
+
+### 陈述 3
+Despite the mission's success, Strike still has personal conflicts and is not promoted as he had hoped. He also loses his crew and the ship he had grown to like. However, he does gain a new respect for Ivy and the Aphrodite crew. Strike ends the story feeling defeated but also more mature and humbled by the experiences he faced.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[206-206]`
+- au=2.276870012283325, eu=0.053748223930597305, au′=2.8624606132507324, eu′=0.055043648928403854
+- top_logits 方差 (pvariance, 有限 logit): 0.26246565028926855
+- top_logits 数值: `[18.68421173095703, 18.157896041870117, 17.763158798217773, 17.763158798217773, 17.631580352783203, 17.631580352783203, 17.36842155456543, 17.10526466369629, 16.973684310913086, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 194 | 194 | 18.68421173095703 | Strike's dark brows knit at the sight of the uniformed girl in the doorway. |
+| 2 | 207 | 207 | 18.157896041870117 | A week in space had convinced Strike that he commanded a jinx ship. |
+| 3 | 389 | 389 | 17.763158798217773 | Cob leaned his elbow on the bar and bent to inspect the blue ribbon of the Spatial Cross on Strike's chest. |
+| 4 | 81 | 81 | 17.763158798217773 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 5 | 208 | 208 | 17.631580352783203 | Jetting sunward from Venus, the cantankerous Aphrodite had burned a steering tube through, and it had been necessary to go into free-fall while Jenkins, the Assistant E/O, and a damage control party effected repairs. |
+| 6 | 409 | 409 | 17.631580352783203 | "She's gone to the Bureau of Ships with a designing job." |
+| 7 | 407 | 407 | 17.36842155456543 | Cob looked away. |
+| 8 | 338 | 338 | 17.10526466369629 | Strike watched her with apprehension. |
+| 9 | 193 | 193 | 16.973684310913086 | "Come in, Cob." |
+| 10 | 206 | 206 | 16.973684310913086 | "Why, certainly ... uh ... Miss ... but why should you be so...."  The girl's voice was even colder than before as she said, "Harlan Hendricks, Captain, is my father." |
+
+**跨度** `[207-207]`
+- au=2.276870012283325, eu=0.053748223930597305, au′=2.8624606132507324, eu′=0.055043648928403854
+- top_logits 方差 (pvariance, 有限 logit): 0.26246565028926855
+- top_logits 数值: `[18.68421173095703, 18.157896041870117, 17.763158798217773, 17.763158798217773, 17.631580352783203, 17.631580352783203, 17.36842155456543, 17.10526466369629, 16.973684310913086, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 194 | 194 | 18.68421173095703 | Strike's dark brows knit at the sight of the uniformed girl in the doorway. |
+| 2 | 207 | 207 | 18.157896041870117 | A week in space had convinced Strike that he commanded a jinx ship. |
+| 3 | 389 | 389 | 17.763158798217773 | Cob leaned his elbow on the bar and bent to inspect the blue ribbon of the Spatial Cross on Strike's chest. |
+| 4 | 81 | 81 | 17.763158798217773 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 5 | 208 | 208 | 17.631580352783203 | Jetting sunward from Venus, the cantankerous Aphrodite had burned a steering tube through, and it had been necessary to go into free-fall while Jenkins, the Assistant E/O, and a damage control party effected repairs. |
+| 6 | 409 | 409 | 17.631580352783203 | "She's gone to the Bureau of Ships with a designing job." |
+| 7 | 407 | 407 | 17.36842155456543 | Cob looked away. |
+| 8 | 338 | 338 | 17.10526466369629 | Strike watched her with apprehension. |
+| 9 | 193 | 193 | 16.973684310913086 | "Come in, Cob." |
+| 10 | 206 | 206 | 16.973684310913086 | "Why, certainly ... uh ... Miss ... but why should you be so...."  The girl's voice was even colder than before as she said, "Harlan Hendricks, Captain, is my father." |
+
+**跨度** `[208-208]`
+- au=2.276870012283325, eu=0.053748223930597305, au′=2.8624606132507324, eu′=0.055043648928403854
+- top_logits 方差 (pvariance, 有限 logit): 0.26246565028926855
+- top_logits 数值: `[18.68421173095703, 18.157896041870117, 17.763158798217773, 17.763158798217773, 17.631580352783203, 17.631580352783203, 17.36842155456543, 17.10526466369629, 16.973684310913086, 16.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 194 | 194 | 18.68421173095703 | Strike's dark brows knit at the sight of the uniformed girl in the doorway. |
+| 2 | 207 | 207 | 18.157896041870117 | A week in space had convinced Strike that he commanded a jinx ship. |
+| 3 | 389 | 389 | 17.763158798217773 | Cob leaned his elbow on the bar and bent to inspect the blue ribbon of the Spatial Cross on Strike's chest. |
+| 4 | 81 | 81 | 17.763158798217773 | Strykalski sighed, still thinking of his sleek Ganymede . |
+| 5 | 208 | 208 | 17.631580352783203 | Jetting sunward from Venus, the cantankerous Aphrodite had burned a steering tube through, and it had been necessary to go into free-fall while Jenkins, the Assistant E/O, and a damage control party effected repairs. |
+| 6 | 409 | 409 | 17.631580352783203 | "She's gone to the Bureau of Ships with a designing job." |
+| 7 | 407 | 407 | 17.36842155456543 | Cob looked away. |
+| 8 | 338 | 338 | 17.10526466369629 | Strike watched her with apprehension. |
+| 9 | 193 | 193 | 16.973684310913086 | "Come in, Cob." |
+| 10 | 206 | 206 | 16.973684310913086 | "Why, certainly ... uh ... Miss ... but why should you be so...."  The girl's voice was even colder than before as she said, "Harlan Hendricks, Captain, is my father." |
+- GPT 引用1: span=[206, 208], relevant=0
+
+## squality_dev_idx5 (idx=5, squality_dev)
+### 问题
+What is the plot of the story?
+
+### 参考答案（数据集）
+- ref1: Syme Rector is the most-wanted raider in the Triplanet Patrol system and wants access to the ancient Martian city of Kal-Jmar so that he can steal the priceless objects located there. The city has been abandoned for thousands of years, but no human has been able to enter it. Rector crashed his ship in the Mare Cimmerium and left a false trail for authorities to divert them from following him to Lillis, where he plans to obtain a spaceman’s identity card. This card will enable him to ship out on a freighter flight after he has obtained his stolen goods.   Rector follows a young patrolman until he catches him unaware on the observation deck of the Founders’ Tower. Rector shoots him in the chest, steals his wallet, and throws his body over the parapet. However, a hook on the patrolman’s unifo…
+- ref2: Syme Rector is one of the most well-known outlaws in the galaxy. After crashing on Mars, he is desperate for a spaceman’s identity card so he can remain in place just a little while longer. He follows a young man until he can murder him with his energy pistol. But as the body falls, so does Syme, who was hooked onto the man’s clothing. He hangs off the ledge of the building as disattaches himself from the boy. His body falls to the group, just as Harold Tate, physicist, rescues Syme.  With his victim’s wallet in hand, Syme takes Tate to the bar and orders drinks for the both of them. Tate drunkenly reveals his greatest invention and desire to go to Kal-Jmar to test it out. Syme agrees to take him to the city, with the hopes of glory and money in return. On their journey across Mars, they r…
+- ref3: Syme Rector is an outlaw looking for safe passage out of the Martian city of Lillis after the crash landing of his ship. He stalks and kills a boy in order to gain access to his identification and attempt to leave the planet and avoid the authorities.  He meets Harold Tate who is looking for a guide to take him to the ancient city of Kal-Jmar. Syme agrees to take Tate to his proposed location. On the way they meet Martians who they engage and defeat.  Once they reach Kal-Jmar, Tate is able to open a door to the city. Syme betrays Tate, killing him. However Syme is himself killed when a robot inside the city mistakes him for a hungry Martian and forcibly feeds him poisonous food.
+- ref4: Syme Rector crashes his spaceship in Mare Cimmerium and gets through the translucent dome. He needs to disguise himself as an authority figure to enter the city, and he will need a spaceman’s identity card to do that.  Rector worries that the Triplanet Patrol will soon realize that he is an intruder. He follows a young patrolman and shoots him with a flame in the chest. He then takes his identification card and throws his body over the balcony. However, he unknowingly attaches the boy’s clothing to his own, and he begins falling over the railing along with the corpse. He lands on a roof and manages to unhook himself from his victim.   Harold Tate comes along and helps Rector get back to safety. The two earth men grab an alcoholic beverage and discuss some secret plans. Tate wants to visit …
+
+### 模型全文输出
+```
+<statement>The plot of the story is that Syme Rector, a notorious space raider, crashes his ship on Mars and needs a new identity card to avoid being caught by the Triplanet Patrol. He follows a young spaceman to the top of a tower and kills him to steal his card. He then meets Harold Tate, a physicist who has discovered a way to break down the force field around the ancient city of Kal-Jmar, which is filled with untold wealth and robots that can fulfill desires. Tate offers to pay Syme to guide him to Kal-Jmar, but Syme is wary of the Martians who live there. They encounter a group of Martians in a cave and a fight ensues, in which Syme kills all of them. They continue on to Kal-Jmar and Syme is able to access all of the wealth and technology inside the city. However, he is ultimately killed by a robot that feeds him a lethal drink.<cite>[5-5][9-9][11-11]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 525], 共 525 句。
+引用指标: R=0.5, P=0.3333333333333333, F1=0.4
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1870, completion_tokens=30
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The plot of the story is that Syme Rector, a notorious space raider, crashes his ship on Mars and needs a new identity card to avoid being caught by the Triplanet Patrol. He follows a young spaceman to the top of a tower and kills him to steal his card. He then meets Harold Tate, a physicist who has discovered a way to break down the force field around the ancient city of Kal-Jmar, which is filled with untold wealth and robots that can fulfill desires. Tate offers to pay Syme to guide him to Kal-Jmar, but Syme is wary of the Martians who live there. They encounter a group of Martians in a cave and a fight ensues, in which Syme kills all of them. They continue on to Kal-Jmar and Syme is able to access all of the wealth and technology inside the city. However, he is ultimately killed by a robot that feeds him a lethal drink.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[5-5]`
+- au=0.6818010210990906, eu=0.18095232546329498, au′=0.6818002462387085, eu′=0.0423162542283535
+- top_logits 方差 (pvariance, 有限 logit): 0.4328259470721605
+- top_logits 数值: `[23.289474487304688, 21.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 23.289474487304688 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Doorway to Kal-Jmar By Stuart Fleming Two men had died before Syme Rector's guns  to give him the key to the ancient city of  Kal-Jmar—a city of untold wealth, and of  robots that made desires instant commands. |
+| 2 | 5 | 5 | 21.973684310913086 | The tall man loitered a moment before a garish window display, his eyes impassive in his space-burned face, as the Lillis patrolman passed. |
+
+**跨度** `[9-9]`
+- au=0.6826886534690857, eu=0.17431187629699707, au′=0.6826878190040588, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[23.8157901763916, 23.55263328552246]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 23.8157901763916 | Getting through that dome had been his first urgent problem, but now he had another, and a more pressing one. |
+| 2 | 9 | 9 | 23.55263328552246 | It had been simple enough to pass himself off as an itinerant prospector and gain entrance to the city, after his ship had crashed in the Mare Cimmerium. |
+
+**跨度** `[11-11]`
+- au=0.6818010210990906, eu=0.18095232546329498, au′=0.6818002462387085, eu′=0.0423162542283535
+- top_logits 方差 (pvariance, 有限 logit): 0.4328259470721605
+- top_logits 数值: `[23.289474487304688, 21.973684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 23.289474487304688 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Doorway to Kal-Jmar By Stuart Fleming Two men had died before Syme Rector's guns  to give him the key to the ancient city of  Kal-Jmar—a city of untold wealth, and of  robots that made desires instant commands. |
+| 2 | 5 | 5 | 21.973684310913086 | The tall man loitered a moment before a garish window display, his eyes impassive in his space-burned face, as the Lillis patrolman passed. |
+- GPT 引用1: span=[5, 5], relevant=0
+- GPT 引用2: span=[9, 9], relevant=0
+- GPT 引用3: span=[11, 11], relevant=1
+
+## squality_dev_idx6 (idx=6, squality_dev)
+### 问题
+Describe the setting of the story.
+
+### 参考答案（数据集）
+- ref1: The setting of the story is on Mars. It begins in the city of Lillis, which is covered with a translucent steelite dome and is guarded by the Triplanet Patrol. One outstanding feature of the city is its Founders’ Tower, which is the tallest building in Lillis. On the top level, there is an observation deck that looks out over the city. Outside the city is an area called the Mare Cimmerium. The planet has red dust and supports some life, specifically lichens and tumble-grass. It has mountains, canyons, gullies, and deserts.  The ancient city of Kal-Jmar features prominently in the story. It is an ancient city of the Martian race that was very advanced but is now abandoned. There are machines, records, and other objects left behind, and all are perfectly preserved inside a bubble-like dome t…
+- ref2: Although the beginning of the story takes place on Venus, it quickly transitions to Mars. Specifically, the long-lost city of Kal-Jmar.  With a protective sphere, Kal-Jmar is impenetrable and the myth and folklore surrounding it are grandiose. Kal-Jmar is only one city on Mars (the last ancient city), where the rest of the Martians live. Many Terrestrials tried to access the city, to view the historic artifacts and glorious treasures, but each attempt only lead to infighting on Mars. Soon, the Mars Protectorate forbade Earthmen to travel on Mars, as well as perform any experiments on Kal-Jmar.  This city is rich with well-preserved artifacts and snippets of history that many vyed to get their hands on. This story surrounds the mysteries of this city as well as the desire and need to plunde…
+- ref3: The story takes place on Mars in the future. The planet has been colonized by humans to the extent that cities such as Lillis are covered with immense domes to protect from the harsh Martian environment.  The characters in the story head to the ancient Martian domed city of Kal-Jmar. They head across the parched Martian landscape and eventually head down a gully which is filled with moisture and even a phosphorescent type of fungus. Kal-Jmar is filled with treasures but otherwise abandoned.
+- ref4: The story takes place on Mars. There are parts of Mars that have been colonized by earth men, like the city of Lillis, and parts that the current-day Martians still control. One of those areas is Kal-Jmar, an ancient city that earth men know very little about. When Tate and Rector first come across the city, they immediately notice its fantastic architecture. Although it’s in a state of decay, it’s obvious that the ancient city was once beautiful.   The dome at Kal-Jmar is particularly fantastic. For many years, earth men have tried to figure out how to break through its forcefield. However, the dome is impervious to bombs, and even diamonds cannot break its shell. Inside the dome are all of the relics of the ancient Martian civilization. Records, machines, books, and precious metals are a…
+
+### 模型全文输出
+```
+<statement>The story takes place on Mars, in the city of Lillis and the surrounding hill country.<cite>[5-5][7-7][165-165]</cite></statement>
+
+<statement>Lillis is a modern city with a translucent dome protecting it from the harsh Martian environment. It has multicolored lights and a tall tower called the Founders' Tower.<cite>[7-7][40-40]</cite></statement>
+
+<statement>The hill country is described as wild and rugged, with deep gullies and steep hills. The protagonist and his companion travel through this area in a sand car, encountering native Martians who are hostile and armed.<cite>[165-165][180-180][181-181]</cite></statement>
+
+<statement>The story also mentions the city of Kal-Jmar, which is an ancient city of the Martian race located somewhere on Mars. It is said to contain untold wealth and robots that can fulfill desires. The city is surrounded by a force field that prevents entry.<cite>[1-1][139-145]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 525], 共 525 句。
+引用指标: R=0.75, P=0.6666666666666666, F1=0.7058823529411765
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=4457, completion_tokens=93
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The story takes place on Mars, in the city of Lillis and the surrounding hill country.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[5-5]`
+- au=0.6817148923873901, eu=0.18491479754447937, au′=0.6817141771316528, eu′=0.04340376332402229
+- top_logits 方差 (pvariance, 有限 logit): 0.21208374784328043
+- top_logits 数值: `[22.5, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 5 | 5 | 22.5 | The tall man loitered a moment before a garish window display, his eyes impassive in his space-burned face, as the Lillis patrolman passed. |
+| 2 | 7 | 7 | 21.578948974609375 | Above, the city's multicolored lights were reflected from the translucent Dome—a distant, subtly distorted Lillis, through which the stars shone dimly. |
+
+**跨度** `[7-7]`
+- au=1.6567056491112453e-06, eu=0.2945735454559326, au′=-0.0, eu′=0.04008438438177109
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.947368621826172]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 23.947368621826172 | Above, the city's multicolored lights were reflected from the translucent Dome—a distant, subtly distorted Lillis, through which the stars shone dimly. |
+
+**跨度** `[165-165]`
+- au=0.6817148923873901, eu=0.18491479754447937, au′=0.6817141771316528, eu′=0.04340376332402229
+- top_logits 方差 (pvariance, 有限 logit): 0.21208374784328043
+- top_logits 数值: `[22.5, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 5 | 5 | 22.5 | The tall man loitered a moment before a garish window display, his eyes impassive in his space-burned face, as the Lillis patrolman passed. |
+| 2 | 7 | 7 | 21.578948974609375 | Above, the city's multicolored lights were reflected from the translucent Dome—a distant, subtly distorted Lillis, through which the stars shone dimly. |
+- GPT 引用1: span=[5, 5], relevant=1
+- GPT 引用2: span=[7, 7], relevant=1
+- GPT 引用3: span=[165, 165], relevant=0
+
+### 陈述 1
+Lillis is a modern city with a translucent dome protecting it from the harsh Martian environment. It has multicolored lights and a tall tower called the Founders' Tower.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[7-7]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 24.473684310913086 | Above, the city's multicolored lights were reflected from the translucent Dome—a distant, subtly distorted Lillis, through which the stars shone dimly. |
+
+**跨度** `[40-40]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 24.473684310913086 | Above, the city's multicolored lights were reflected from the translucent Dome—a distant, subtly distorted Lillis, through which the stars shone dimly. |
+- GPT 引用1: span=[7, 7], relevant=1
+- GPT 引用2: span=[40, 40], relevant=0
+
+### 陈述 2
+The hill country is described as wild and rugged, with deep gullies and steep hills. The protagonist and his companion travel through this area in a sand car, encountering native Martians who are hostile and armed.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[165-165]`
+- au=0.682124137878418, eu=0.1822541505098343, au′=0.6821234226226807, eu′=0.04267265275120735
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[22.5, 22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 165 | 165 | 22.5 | Syme turned the little sand car up a gentle rise towards the tortuous hill country in the distance. |
+| 2 | 179 | 179 | 22.36842155456543 | The hills were much closer than they had seemed, because of Mars' deceptively low horizon. |
+
+**跨度** `[180-180]`
+- au=0.682124137878418, eu=0.1822541505098343, au′=0.6821234226226807, eu′=0.04267265275120735
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[22.5, 22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 165 | 165 | 22.5 | Syme turned the little sand car up a gentle rise towards the tortuous hill country in the distance. |
+| 2 | 179 | 179 | 22.36842155456543 | The hills were much closer than they had seemed, because of Mars' deceptively low horizon. |
+
+**跨度** `[181-181]`
+- au=0.682124137878418, eu=0.1822541505098343, au′=0.6821234226226807, eu′=0.04267265275120735
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[22.5, 22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 165 | 165 | 22.5 | Syme turned the little sand car up a gentle rise towards the tortuous hill country in the distance. |
+| 2 | 179 | 179 | 22.36842155456543 | The hills were much closer than they had seemed, because of Mars' deceptively low horizon. |
+- GPT 引用1: span=[165, 165], relevant=0
+- GPT 引用2: span=[180, 181], relevant=1
+
+### 陈述 3
+The story also mentions the city of Kal-Jmar, which is an ancient city of the Martian race located somewhere on Mars. It is said to contain untold wealth and robots that can fulfill desires. The city is surrounded by a force field that prevents entry.
+- GPT support_score=1; **Rating**: [[Fully supported]]   **
+
+**跨度** `[1-1]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 24.473684310913086 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Doorway to Kal-Jmar By Stuart Fleming Two men had died before Syme Rector's guns  to give him the key to the ancient city of  Kal-Jmar—a city of untold wealth, and of  robots that made desires instant commands. |
+
+**跨度** `[139-145]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 24.473684310913086 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Doorway to Kal-Jmar By Stuart Fleming Two men had died before Syme Rector's guns  to give him the key to the ancient city of  Kal-Jmar—a city of untold wealth, and of  robots that made desires instant commands. |
+- GPT 引用1: span=[1, 1], relevant=1
+- GPT 引用2: span=[139, 145], relevant=1
+
+## squality_dev_idx7 (idx=7, squality_dev)
+### 问题
+Who is Harold Tate, and what happens to him in the story?
+
+### 参考答案（数据集）
+- ref1: Harold Tate is a physicist who has developed a way to create an opening in the force field dome covering the ancient city of Kal-Jmar. Other humans have tried to enter, but none have succeeded. They have not been able to breach the force field, and efforts to do so led to bloody uprisings of current Martians, so the Mars Protectorate has forbidden any Earthmen to go there. Tate happens to be on the observation deck of the Founders’ Tower when Syme Rector is trying to pull himself back over the parapet after getting pulled over it by the patrolman’s body that he threw over the side. Tate invites Rector to have a drink with him, and when he is drunk, he tells Rector he trusts him because he has an honest face. Tate asks Rector to be his guide to Kal-Jmar and tells him about the device he inv…
+- ref2: Harold Tate is an incredibly smart physicist who discovered the Kal-Jmar solution. More specifically, how to break through the impenetrable forcefield surrounding it.  A relatively shy man, he is first introduced in the story by saving Syme’s life. He pulls him up off the ledge, and then they run off and get the drink together. There, roused by culcha, he reveals his huge secret to the man he just saved.  After showing him his invention, Syme agrees to guide him to Kal-Jmar. Tate had never been to Mars before, so he desperately needed someone to take him around.  His knowledge of the Martian race, when it comes to the scientific side, rivals that of Syme’s, who’d possibly run into them before. However, he is scared of the Martians and their unpredictability.  After they are captured by the…
+- ref3: Harold Tate meets Syme Rector and joins him for a drink in Lillis. He is in need of a guide to the ancient Martian city of Kal-Jmar. Traveling with Syme, he encounters a Martian resistance to his journey which they are able to overcome. Using technology of his own design, Tate is able to open a door in the outer door to Kal-Jmar. Immediately after this he is  shot and killed by Syme. He warns Syme that he is walking into a dangerous situation but he is ignored.
+- ref4: Harold Tate comes to Rector’s rescue when he desperately needs help. Rector kills a patrolman and throws his body over a bannister. When Rector finds himself injured and unable to climb over the bar, Tate lends him a hand and asks very few questions. The two men get a drink together at a cafe nearby. Tate confesses that he trusts Rector right away due to his honest face, and he asks Rector to be his guide on Mars.   More specifically, Tate tells Rector that he wants to go to Kal-Jmar, an ancient Martian city that earth men are forbidden from visiting. Tate is a physicist, and he believes he has solved the riddle of the city’s dome. It is an incredible force field that can withstand explosives and diamond drills. Tate believes he invented a machine that will force open the wall of the dome.…
+
+### 模型全文输出
+```
+<statement>Harold Tate is a physicist who is introduced in the story as a man who has stumbled upon a field that seems to be identical in properties to the Kal-Jmar dome, and has found a force that would break it down.<cite>[150-152]</cite></statement>
+
+<statement>He is also the one who tells Syme Rector, the outlaw and raider, about his discovery and takes him to Mars to show him the field.<cite>[152-152]</cite></statement>
+
+<statement>However, things take a turn when they are captured by the Martians who live in the caverns below the city.<cite>[203-204]</cite></statement>
+
+<statement>The Martians, who are telepaths, reveal that they have been deceiving Earth by pretending not to speak Terrestrial and that they have been watching and studying Earth for centuries.<cite>[259-262][266-266][269-275]</cite></statement>
+
+<statement>They also reveal that they have a secret that could transform Mars into a planet with a Terrestrial atmosphere in just 50 years.<cite>[298-298]</cite></statement>
+
+<statement>However, they decide that Tate and Syme must die because they are outsiders and could potentially reveal their secrets to Earth.<cite>[280-280]</cite></statement>
+
+<statement>In the ensuing fight, Syme manages to kill the Martian leader and the others, but Tate is unable to bring himself to fight and ends up being killed by the Martians.<cite>[332-332][343-343][354-354]</cite></statement>
+
+<statement>Afterwards, Syme goes on to explore and loot Kal-Jmar, but his victory is short-lived as he is eventually killed by the robots that still patrol the city.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 525], 共 525 句。
+引用指标: R=0.375, P=0.45454545454545453, F1=0.410958904109589
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=6654, completion_tokens=139
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Harold Tate is a physicist who is introduced in the story as a man who has stumbled upon a field that seems to be identical in properties to the Kal-Jmar dome, and has found a force that would break it down.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[150-152]`
+- au=0.6824045777320862, eu=0.17757005989551544, au′=0.6824037432670593, eu′=0.04139433056116104
+- top_logits 方差 (pvariance, 有限 logit): 0.0692520511447583
+- top_logits 数值: `[23.421052932739258, 22.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 151 | 151 | 23.421052932739258 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+| 2 | 150 | 150 | 22.894737243652344 | Thus matter had stood for over a hundred years, until Harold Tate. |
+- GPT 引用1: span=[150, 152], relevant=1
+
+### 陈述 1
+He is also the one who tells Syme Rector, the outlaw and raider, about his discovery and takes him to Mars to show him the field.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[152-152]`
+- au=1.083324670791626, eu=0.13380277156829834, au′=1.083324670791626, eu′=0.044289033859968185
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[21.578948974609375, 21.578948974609375, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 152 | 152 | 21.578948974609375 | And so he had made his first trip to Mars, and within twenty-four hours, by the blindest of chances, blurted out his secret to Syme Rector, the scourge of the spaceways, the man with a thousand credits on his sleek, tigerish head. |
+| 2 | 151 | 151 | 21.578948974609375 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+| 3 | 150 | 150 | 21.578948974609375 | Thus matter had stood for over a hundred years, until Harold Tate. |
+- GPT 引用1: span=[152, 152], relevant=1
+
+### 陈述 2
+However, things take a turn when they are captured by the Martians who live in the caverns below the city.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[203-204]`
+- au=2.2781388759613037, eu=0.051316674798727036, au′=2.6823532581329346, eu′=0.051912564784288406
+- top_logits 方差 (pvariance, 有限 logit): 0.23978544668501856
+- top_logits 数值: `[19.73684310913086, 18.947368621826172, 18.552631378173828, 18.421052932739258, 18.421052932739258, 18.289474487304688, 18.289474487304688, 18.157896041870117, 18.026315689086914, 18.026315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 280 | 280 | 19.73684310913086 | Unfortunately, you must die." |
+| 2 | 240 | 240 | 18.947368621826172 | The Martian leader looked at them enigmatically, then turned and started off. |
+| 3 | 230 | 230 | 18.552631378173828 | One Martian, who looked exactly like all the rest, stepped forward and motioned unmistakably for the two to come out. |
+| 4 | 277 | 277 | 18.421052932739258 | "What do you want with us?" |
+| 5 | 216 | 216 | 18.421052932739258 | Syme looked. |
+| 6 | 217 | 217 | 18.289474487304688 | "Those," he said bitterly, "are Martians." |
+| 7 | 279 | 279 | 18.289474487304688 | "You already suspect. |
+| 8 | 203 | 203 | 18.157896041870117 | They had traveled no more than five hundred meters, and the gully was as deep as ever, when Tate, looking up, saw a deeper blackness blot out part of the black sky directly overhead. |
+| 9 | 212 | 212 | 18.026315689086914 | Then he looked up again and caught a glimpse of the horde of beasts that were rushing up the gully toward them. |
+| 10 | 237 | 237 | 18.026315689086914 | They're unpredictable." |
+- GPT 引用1: span=[203, 204], relevant=0
+
+### 陈述 3
+The Martians, who are telepaths, reveal that they have been deceiving Earth by pretending not to speak Terrestrial and that they have been watching and studying Earth for centuries.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[259-262]`
+- au=1.368391752243042, eu=0.1062936931848526, au′=1.368391752243042, eu′=0.045413799583911896
+- top_logits 方差 (pvariance, 有限 logit): 0.2110027589958463
+- top_logits 数值: `[21.578948974609375, 21.3157901763916, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 259 | 259 | 21.578948974609375 | "We are telepaths, of course. |
+| 2 | 257 | 257 | 21.3157901763916 | "We had our reasons for not doing so," the Martian said. |
+| 3 | 255 | 255 | 20.789474487304688 | "I thought you said they didn't speak Terrestrial," Tate said. |
+| 4 | 251 | 251 | 20.394737243652344 | Kalis methra ," he began haltingly, " seltin guna getal. " |
+
+**跨度** `[266-266]`
+- au=1.368391752243042, eu=0.1062936931848526, au′=1.368391752243042, eu′=0.045413799583911896
+- top_logits 方差 (pvariance, 有限 logit): 0.2110027589958463
+- top_logits 数值: `[21.578948974609375, 21.3157901763916, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 259 | 259 | 21.578948974609375 | "We are telepaths, of course. |
+| 2 | 257 | 257 | 21.3157901763916 | "We had our reasons for not doing so," the Martian said. |
+| 3 | 255 | 255 | 20.789474487304688 | "I thought you said they didn't speak Terrestrial," Tate said. |
+| 4 | 251 | 251 | 20.394737243652344 | Kalis methra ," he began haltingly, " seltin guna getal. " |
+
+**跨度** `[269-275]`
+- au=1.368391752243042, eu=0.1062936931848526, au′=1.368391752243042, eu′=0.045413799583911896
+- top_logits 方差 (pvariance, 有限 logit): 0.2110027589958463
+- top_logits 数值: `[21.578948974609375, 21.3157901763916, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 259 | 259 | 21.578948974609375 | "We are telepaths, of course. |
+| 2 | 257 | 257 | 21.3157901763916 | "We had our reasons for not doing so," the Martian said. |
+| 3 | 255 | 255 | 20.789474487304688 | "I thought you said they didn't speak Terrestrial," Tate said. |
+| 4 | 251 | 251 | 20.394737243652344 | Kalis methra ," he began haltingly, " seltin guna getal. " |
+- GPT 引用1: span=[259, 262], relevant=1
+- GPT 引用2: span=[266, 266], relevant=1
+- GPT 引用3: span=[269, 275], relevant=0
+
+### 陈述 4
+They also reveal that they have a secret that could transform Mars into a planet with a Terrestrial atmosphere in just 50 years.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[298-298]`
+- au=1.5962523320922628e-06, eu=0.28252777457237244, au′=-0.0, eu′=0.03788633644580841
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[25.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 298 | 298 | 25.394737243652344 | "There are many secrets in Kal-Jmar," the Martian said, "among them a very simple catalyzing agent which could within fifty years transform Mars to a planet with Terrestrially-thick atmosphere." |
+- GPT 引用1: span=[298, 298], relevant=1
+
+### 陈述 5
+However, they decide that Tate and Syme must die because they are outsiders and could potentially reveal their secrets to Earth.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[280-280]`
+- au=0.682124137878418, eu=0.1822541505098343, au′=0.6821234226226807, eu′=0.04267265275120735
+- top_logits 方差 (pvariance, 有限 logit): 0.004328221825744549
+- top_logits 数值: `[22.5, 22.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 280 | 280 | 22.5 | Unfortunately, you must die." |
+| 2 | 277 | 277 | 22.36842155456543 | "What do you want with us?" |
+- GPT 引用1: span=[280, 280], relevant=0
+
+### 陈述 6
+In the ensuing fight, Syme manages to kill the Martian leader and the others, but Tate is unable to bring himself to fight and ends up being killed by the Martians.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[332-332]`
+- au=0.6810101270675659, eu=0.19487175345420837, au′=0.6810091137886047, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.1558167386256173
+- top_logits 数值: `[21.052631378173828, 20.263158798217773]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 21.052631378173828 | Too swiftly for his intention to be telegraphed, before he knew himself what he meant to do, he hurled himself bodily into the Martian. |
+| 2 | 332 | 332 | 20.263158798217773 | Syme saw all his hopes of treasure and glory go glimmering down the sights of the Martian's Benson gun, and suddenly the pent-up rage in him exploded. |
+
+**跨度** `[343-343]`
+- au=0.6810101270675659, eu=0.19487175345420837, au′=0.6810091137886047, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.1558167386256173
+- top_logits 数值: `[21.052631378173828, 20.263158798217773]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 21.052631378173828 | Too swiftly for his intention to be telegraphed, before he knew himself what he meant to do, he hurled himself bodily into the Martian. |
+| 2 | 332 | 332 | 20.263158798217773 | Syme saw all his hopes of treasure and glory go glimmering down the sights of the Martian's Benson gun, and suddenly the pent-up rage in him exploded. |
+
+**跨度** `[354-354]`
+- au=0.6810101270675659, eu=0.19487175345420837, au′=0.6810091137886047, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.1558167386256173
+- top_logits 数值: `[21.052631378173828, 20.263158798217773]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 333 | 333 | 21.052631378173828 | Too swiftly for his intention to be telegraphed, before he knew himself what he meant to do, he hurled himself bodily into the Martian. |
+| 2 | 332 | 332 | 20.263158798217773 | Syme saw all his hopes of treasure and glory go glimmering down the sights of the Martian's Benson gun, and suddenly the pent-up rage in him exploded. |
+- GPT 引用1: span=[332, 332], relevant=0
+- GPT 引用2: span=[343, 343], relevant=0
+- GPT 引用3: span=[354, 354], relevant=0
+
+### 陈述 7
+Afterwards, Syme goes on to explore and loot Kal-Jmar, but his victory is short-lived as he is eventually killed by the robots that still patrol the city.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+## squality_dev_idx8 (idx=8, squality_dev)
+### 问题
+What are the items that Syme Rector uses that help him survive?
+
+### 参考答案（数据集）
+- ref1: Rector carries a pistol that, when shot, is silent. This enables him to shoot the young patrolman without drawing attention to himself or making people aware that there has been a shooting. In the sand car, Rector relies on the car’s metal arm and thick wire cable to travel down into the gully. He has harpoon guns that he and Tate can use later if they need to climb back out of the gully. After Rector battles with the Martians and shoots them, he uses a tube of sealing liquid that he carries in his emergency kit to seal the tear in his suit so that he stops losing oxygen. He also uses the sealant to close the wound in his leg from the graze of one of the Benson guns the Martians fired at him. Rector and Tate use oxygen tanks and space suits in their journey to Kal-Jmar because there is not…
+- ref2: Syme Rector is an outlaw, a man that relies on his wits and his tools to survive. His grand experiences and adventures have taught him several lifetime’s worth of wisdom. His most trusted tool is his handy energy pistol, which he uses many times throughout the story. This gun is powerful and quick and can be found holstered on his hip.  He also steals a spaceman’s identity card, someone named Jones, in order to not be caught on Mars.  He uses a sand car to travel across Mars and transport Tate to Kal-Jmar. This car is equipped with an anchor, as well as a pulley, so one can safely descend and ascend.
+- ref3: At one point Syme using a tube of sealing agent to make an airtight seal of a tear in his spacesuit. Syme also carries a gun which he uses to shoot and kill the boy early in the story in order to steal his identification. He also uses the gun on Tate after he gains access to Kal-Jmar. Syme also uses a sand car to navigate the Martian Terrain and guide Tate to the location of Kal-Jmar.
+- ref4: Rector would be immediately caught and punished if he were captured in the city of Lillis without identification. That’s why the patrolman’s identity card is so important. In order to get it, Rector has to stalk a young and innocent patrolman and murder him in broad daylight. He steals his wallet so that he can use his ID card, and he starts going by the name Jones.   The sand car is also an important item for Rector because its technology allows Rector and Tate to make their way through the sand and over the gullies of the difficult terrain on Mars. The car actually has metal arms that can go deep into the sand and lift the car up and over obstacles. Unfortunately, the car does not get the duo very far before a group of Martians attacks them and destroys the car.   Rector also has to stea…
+
+### 模型全文输出
+```
+<statement>Based on the story, some of the key items that Syme Rector uses to help him survive include:<cite></cite></statement>
+
+<statement>- Energy pistol - Syme uses this to kill the spaceman on the observation platform and to defend himself against the Martians. (Chapters 1, 2)<cite>[50-55][348-356]</cite></statement>
+
+<statement>- Pressure suit - Syme and Tate wear these to survive the low air pressure in the Martian caverns. (Chapter 6)<cite>[248-250][253-253][357-360]</cite></statement>
+
+<statement>- Sand car - This vehicle helps them travel across the Martian terrain, including down a steep gully. (Chapter 5)<cite>[181-192]</cite></statement>
+
+<statement>- Harpoon gun - This is mentioned as a way to climb out of deep gullies, although they don't get a chance to use it. (Chapter 5)<cite>[197-197][202-202]</cite></statement>
+
+<statement>- Spare oxygen tanks - Syme and Tate carry these to make sure they have enough air to survive. (Chapter 7)<cite>[369-369]</cite></statement>
+
+<statement>- Tate's device - This is a machine that can penetrate the force field around Kal-Jmar. It helps Syme gain entrance to the city. (Chapters 8-8, 10-10, 12-12, 14-14)<cite>[151-152]</cite></statement>
+
+<statement>So in summary, Syme uses a combination of weapons, survival gear, and technology to help him survive the dangers of Mars and Kal-Jmar. His resourcefulness and determination also play a big role in his survival.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 525], 共 525 句。
+引用指标: R=0.8125, P=0.7, F1=0.7520661157024793
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=7308, completion_tokens=140
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, some of the key items that Syme Rector uses to help him survive include:
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+- Energy pistol - Syme uses this to kill the spaceman on the observation platform and to defend himself against the Martians. (Chapters 1, 2)
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[50-55]`
+- au=0.6804229021072388, eu=0.1890546828508377, au′=0.6804220676422119, eu′=0.044548649340867996
+- top_logits 方差 (pvariance, 有限 logit): 1.1080328183161328
+- top_logits 数值: `[22.5, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 50 | 50 | 22.5 | Syme loosened his slim, deadly energy pistol in its holster and padded catlike toward the silent figure. |
+| 2 | 39 | 39 | 20.394737243652344 | The signatures, the data, even the photograph on the card could be forged once Syme got his hands on it, but the identity card itself—that oblong of dark diamondite, glowing with the tiny fires of radioactivity—that could not be imitated, and the only way to get it was to kill. |
+
+**跨度** `[348-356]`
+- au=0.6804229021072388, eu=0.1890546828508377, au′=0.6804220676422119, eu′=0.044548649340867996
+- top_logits 方差 (pvariance, 有限 logit): 1.1080328183161328
+- top_logits 数值: `[22.5, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 50 | 50 | 22.5 | Syme loosened his slim, deadly energy pistol in its holster and padded catlike toward the silent figure. |
+| 2 | 39 | 39 | 20.394737243652344 | The signatures, the data, even the photograph on the card could be forged once Syme got his hands on it, but the identity card itself—that oblong of dark diamondite, glowing with the tiny fires of radioactivity—that could not be imitated, and the only way to get it was to kill. |
+- GPT 引用1: span=[50, 55], relevant=1
+- GPT 引用2: span=[348, 356], relevant=1
+
+### 陈述 2
+- Pressure suit - Syme and Tate wear these to survive the low air pressure in the Martian caverns. (Chapter 6)
+- GPT support_score=0.5; **Rating: [[Partially supported]]**
+
+**跨度** `[248-250]`
+- au=1.0825728178024292, eu=0.13743217289447784, au′=1.0825724601745605, eu′=0.04561823979020119
+- top_logits 方差 (pvariance, 有限 logit): 0.24238276459638858
+- top_logits 数值: `[21.578948974609375, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 21.578948974609375 | He rose and reached for a pressure suit, and Tate followed him. |
+| 2 | 248 | 248 | 20.789474487304688 | "There's air here," he said to Tate. |
+| 3 | 239 | 239 | 20.394737243652344 | The air in the car whooshed into the near-vacuum outside, and he and Tate stepped out. |
+
+**跨度** `[253-253]`
+- au=1.0825728178024292, eu=0.13743217289447784, au′=1.0825724601745605, eu′=0.04561823979020119
+- top_logits 方差 (pvariance, 有限 logit): 0.24238276459638858
+- top_logits 数值: `[21.578948974609375, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 21.578948974609375 | He rose and reached for a pressure suit, and Tate followed him. |
+| 2 | 248 | 248 | 20.789474487304688 | "There's air here," he said to Tate. |
+| 3 | 239 | 239 | 20.394737243652344 | The air in the car whooshed into the near-vacuum outside, and he and Tate stepped out. |
+
+**跨度** `[357-360]`
+- au=1.0825728178024292, eu=0.13743217289447784, au′=1.0825724601745605, eu′=0.04561823979020119
+- top_logits 方差 (pvariance, 有限 logit): 0.24238276459638858
+- top_logits 数值: `[21.578948974609375, 20.789474487304688, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 234 | 234 | 21.578948974609375 | He rose and reached for a pressure suit, and Tate followed him. |
+| 2 | 248 | 248 | 20.789474487304688 | "There's air here," he said to Tate. |
+| 3 | 239 | 239 | 20.394737243652344 | The air in the car whooshed into the near-vacuum outside, and he and Tate stepped out. |
+- GPT 引用1: span=[248, 250], relevant=0
+- GPT 引用2: span=[253, 253], relevant=0
+- GPT 引用3: span=[357, 360], relevant=1
+
+### 陈述 3
+- Sand car - This vehicle helps them travel across the Martian terrain, including down a steep gully. (Chapter 5)
+- GPT support_score=1; **Rating**: [[Fully supported]]   **
+
+**跨度** `[181-192]`
+- au=1.082749366760254, eu=0.13571427762508392, au′=1.0827486515045166, eu′=0.044988155364990234
+- top_logits 方差 (pvariance, 有限 logit): 0.29239799544140826
+- top_logits 数值: `[21.842105865478516, 21.3157901763916, 20.526315689086914]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 187 | 187 | 21.842105865478516 | Syme nodded and moved the sand car up to the edge of the gully. |
+| 2 | 181 | 181 | 21.3157901763916 | Syme stopped the car abruptly as a deep, winding channel appeared across their path. |
+| 3 | 180 | 180 | 20.526315689086914 | In half an hour they were in the midst of a wilderness of fantastically eroded dunes and channels, laboring on sliding treads up the sides of steep hills only to slither down again on the other side. |
+- GPT 引用1: span=[181, 192], relevant=1
+
+### 陈述 4
+- Harpoon gun - This is mentioned as a way to climb out of deep gullies, although they don't get a chance to use it. (Chapter 5)
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[197-197]`
+- au=1.6284955108858412e-06, eu=0.28897327184677124, au′=-0.0, eu′=0.03905446454882622
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 197 | 197 | 24.60526466369629 | "Most of these gullies peter out gradually," said Syme, "but if we want or have to climb out where it's deep, we have a little harpoon gun that shoots the anchor up on top." |
+
+**跨度** `[202-202]`
+- au=1.6284955108858412e-06, eu=0.28897327184677124, au′=-0.0, eu′=0.03905446454882622
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 197 | 197 | 24.60526466369629 | "Most of these gullies peter out gradually," said Syme, "but if we want or have to climb out where it's deep, we have a little harpoon gun that shoots the anchor up on top." |
+- GPT 引用1: span=[197, 197], relevant=1
+- GPT 引用2: span=[202, 202], relevant=0
+
+### 陈述 5
+- Spare oxygen tanks - Syme and Tate carry these to make sure they have enough air to survive. (Chapter 7)
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[369-369]`
+- au=0.6823413372039795, eu=0.17882348597049713, au′=0.6823405027389526, eu′=0.04173530638217926
+- top_logits 方差 (pvariance, 有限 logit): 0.03895437288156245
+- top_logits 数值: `[23.157896041870117, 22.763158798217773]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 357 | 357 | 23.157896041870117 | He was gasping for breath, and realized that he was losing air from the seared-open right leg of his suit. |
+| 2 | 369 | 369 | 22.763158798217773 | Still silently, Syme refilled his oxygen tank, watched Tate do the same, and then picked up two spare tanks and the precious black suitcase and handed one of the tanks to Tate. |
+- GPT 引用1: span=[369, 369], relevant=1
+
+### 陈述 6
+- Tate's device - This is a machine that can penetrate the force field around Kal-Jmar. It helps Syme gain entrance to the city. (Chapters 8-8, 10-10, 12-12, 14-14)
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[151-152]`
+- au=1.7688519954681396, eu=0.08145765215158463, au′=1.7688521146774292, eu′=0.05052071437239647
+- top_logits 方差 (pvariance, 有限 logit): 0.6833830566619226
+- top_logits 数值: `[20.0, 19.473684310913086, 19.210527420043945, 18.421052932739258, 17.894737243652344, 17.763158798217773]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 151 | 151 | 20.0 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+| 2 | 8 | 8 | 19.473684310913086 | Getting through that dome had been his first urgent problem, but now he had another, and a more pressing one. |
+| 3 | 39 | 39 | 19.210527420043945 | The signatures, the data, even the photograph on the card could be forged once Syme got his hands on it, but the identity card itself—that oblong of dark diamondite, glowing with the tiny fires of radioactivity—that could not be imitated, and the only way to get it was to kill. |
+| 4 | 40 | 40 | 18.421052932739258 | Up ahead was the Founders' Tower, the tallest building in Lillis. |
+| 5 | 38 | 38 | 17.894737243652344 | It was risky, but there was no other way. |
+| 6 | 406 | 406 | 17.763158798217773 | It looked unsubstantial as the stuff of dreams, but both men knew that no power man possessed, unless it was the thing Tate held, could penetrate that screen. |
+- GPT 引用1: span=[151, 152], relevant=1
+
+### 陈述 7
+So in summary, Syme uses a combination of weapons, survival gear, and technology to help him survive the dangers of Mars and Kal-Jmar. His resourcefulness and determination also play a big role in his survival.
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+## squality_dev_idx9 (idx=9, squality_dev)
+### 问题
+Describe the Martians in the story.
+
+### 参考答案（数据集）
+- ref1: From the humans' perspective, the Martians are strange, unpredictable beings. They eat sand to get their oxygen, and lichens, fungi, and tumble-grass from the deserts, all of which contain substances like arsenic that are deadly poisons to humans. The humans believe the Martians cannot or will not learn their language, Terrestrial, and that they have their own language. In it, every word can have multiple meanings depending on the inflection used by the speaker. In truth, the Martians have been telepathic for several thousand years because the planet is practically airless. They are clever and only pretend not to understand Terrestrial, and they make up their complicated language to deceive the humans.   Martians want no contact with humans because the Martians have nothing to gain from co…
+- ref2: The ancient Martians, as is revealed later in the story, faced an urgent dilemma when the atmosphere surrounding Mars changed. They could either hide and make scientific changes to survive. Or they could stay where they were and adapt. One group hid in the city of Kal-Jmar, constructing an impenetrable dome around themselves. They remained the same for many years until a plague wiped out the entire population.  The other group was able to survive the atmospheric collapse by changing with it. Their dependence on oxygen lessened. They eat sand to get oxygen, as well as breathing it in the deep caverns below. They can eat poisonous lichens and mushrooms, fungi that would kill any other creature.  And their bodies changed too. Now, they resemble dogs, with fur that changes color depending on t…
+- ref3: The Martians have 4 legs and 2 arms. They are telepathic which aids in their communication on a planet with very little atmosphere. It is thought that they speak an immensely complex language and cannot speak to humans. This, however, is a deception on the part of the Martians who can speak to humans perfectly well. The Martians who currently live on the planet have adapted to live on the planet with no atmosphere. Their species' ancient contemporaries sealed themselves in cities like Kal-Jmar instead of adapting.
+- ref4: The ancient Martians and a prolific species. They have thousands of machines and artifacts that they have created, and they preserved all of their equipment and accomplishments inside an impenetrable dome. Now, the current-day Martians protect the dome. The current-day Martians lived alongside the ancient Martians until the atmosphere on Mars changed rapidly and the ancients could not evolve quickly enough.   The current-day Martians are very different from earth men. Although they breathe oxygen, they also eat sand, fungi, and lichens. They do not come to cities where earth men preside, and they refuse to speak their tongue. The creatures have four legs and two arms, and they move incredibly fast. Their faces resemble dogs, except that they have large foreheads. Thick black fur covers the…
+
+### 模型全文输出
+```
+<statement>Based on the story, the Martians can be described as follows:<cite></cite></statement>
+
+<statement>- They are multi-legged creatures with four legs and two arms, similar to Earth animals like dogs and humans.<cite>[218-220][223-223]</cite></statement>
+
+<statement>- They have thick black fur with irregular patches of white that can be controlled to adjust to temperature.<cite>[223-225]</cite></statement>
+
+<statement>- They have canine-like faces with high foreheads and unsplit lips.<cite>[223-223]</cite></statement>
+
+<statement>- They breathe air like humans, but also eat sand to get oxygen.<cite>[161-161]</cite></statement>
+
+<statement>- They are intelligent and have a telepathic language, but do not speak Terrestrial languages.<cite>[259-262][266-266]</cite></statement>
+
+<statement>- They live in caverns and eat toxic plants and fungi that are poisonous to humans.<cite>[161-161][168-168]</cite></statement>
+
+<statement>- They have a complex society with a conception of justice that involves killing outsiders.<cite>[279-280][288-290]</cite></statement>
+
+<statement>- They have advanced technology like energy guns and robots, but are stuck in a static civilization.<cite>[143-143][227-227][232-232]</cite></statement>
+
+<statement>- They have a secret cache of technology that could terraform Mars, but keep it hidden from humans.<cite>[298-303]</cite></statement>
+
+<statement>So in summary, the Martians are a mysterious and dangerous alien race with a unique biology and culture that is vastly different from humans.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 525], 共 525 句。
+引用指标: R=0.7727272727272727, P=0.5333333333333333, F1=0.6310904872389791
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=8235, completion_tokens=198
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, the Martians can be described as follows:
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+- They are multi-legged creatures with four legs and two arms, similar to Earth animals like dogs and humans.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[218-220]`
+- au=0.6824571490287781, eu=0.17431187629699707, au′=0.682456374168396, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[24.210527420043945, 23.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 218 | 218 | 24.210527420043945 | The natives, like all Martian fauna, were multi-legged. |
+| 2 | 220 | 220 | 23.157896041870117 | Actually, however, the natives had six legs apiece—or, more properly, four legs and two arms. |
+
+**跨度** `[223-223]`
+- au=0.6824571490287781, eu=0.17431187629699707, au′=0.682456374168396, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[24.210527420043945, 23.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 218 | 218 | 24.210527420043945 | The natives, like all Martian fauna, were multi-legged. |
+| 2 | 220 | 220 | 23.157896041870117 | Actually, however, the natives had six legs apiece—or, more properly, four legs and two arms. |
+- GPT 引用1: span=[218, 220], relevant=1
+- GPT 引用2: span=[223, 223], relevant=0
+
+### 陈述 2
+- They have thick black fur with irregular patches of white that can be controlled to adjust to temperature.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[223-225]`
+- au=0.6827387809753418, eu=0.17194566130638123, au′=0.6827378273010254, eu′=0.03987408056855202
+- top_logits 方差 (pvariance, 有限 logit): 0.1558167386256173
+- top_logits 数值: `[24.473684310913086, 23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 224 | 224 | 24.473684310913086 | They did resemble dogs, in that their thick black fur was splotched with irregulate patches of white. |
+| 2 | 223 | 223 | 23.68421173095703 | Their faces were vaguely canine, but the foreheads were high, and the lips were not split. |
+- GPT 引用1: span=[223, 225], relevant=1
+
+### 陈述 3
+- They have canine-like faces with high foreheads and unsplit lips.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[223-223]`
+- au=1.7844809008238371e-06, eu=0.2724013328552246, au′=-0.0, eu′=0.036087363958358765
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[26.710527420043945]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 223 | 223 | 26.710527420043945 | Their faces were vaguely canine, but the foreheads were high, and the lips were not split. |
+- GPT 引用1: span=[223, 223], relevant=1
+
+### 陈述 4
+- They breathe air like humans, but also eat sand to get oxygen.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[161-161]`
+- au=1.6396279534092173e-06, eu=0.2911876440048218, au′=-0.0, eu′=0.039460018277168274
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.342105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 161 | 161 | 24.342105865478516 | They breathe like us, down in their caverns where there's air, but they also eat sand, and get their oxygen that way." |
+- GPT 引用1: span=[161, 161], relevant=1
+
+### 陈述 5
+- They are intelligent and have a telepathic language, but do not speak Terrestrial languages.
+- GPT support_score=0.5; **Rating: [[Partially supported]]**  **
+
+**跨度** `[259-262]`
+- au=0.6797734498977661, eu=0.19437333941459656, au′=0.6797727346420288, eu′=0.046032704412937164
+- top_logits 方差 (pvariance, 有限 logit): 1.250864640497639
+- top_logits 数值: `[21.842105865478516, 19.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 259 | 259 | 21.842105865478516 | "We are telepaths, of course. |
+| 2 | 258 | 258 | 19.60526466369629 | "But how—?" |
+
+**跨度** `[266-266]`
+- au=0.6797734498977661, eu=0.19437333941459656, au′=0.6797727346420288, eu′=0.046032704412937164
+- top_logits 方差 (pvariance, 有限 logit): 1.250864640497639
+- top_logits 数值: `[21.842105865478516, 19.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 259 | 259 | 21.842105865478516 | "We are telepaths, of course. |
+| 2 | 258 | 258 | 19.60526466369629 | "But how—?" |
+- GPT 引用1: span=[259, 262], relevant=1
+- GPT 引用2: span=[266, 266], relevant=0
+
+### 陈述 6
+- They live in caverns and eat toxic plants and fungi that are poisonous to humans.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[161-161]`
+- au=1.6284955108858412e-06, eu=0.28897327184677124, au′=-0.0, eu′=0.03905446454882622
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 161 | 161 | 24.60526466369629 | They breathe like us, down in their caverns where there's air, but they also eat sand, and get their oxygen that way." |
+
+**跨度** `[168-168]`
+- au=1.6284955108858412e-06, eu=0.28897327184677124, au′=-0.0, eu′=0.03905446454882622
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 161 | 161 | 24.60526466369629 | They breathe like us, down in their caverns where there's air, but they also eat sand, and get their oxygen that way." |
+- GPT 引用1: span=[161, 161], relevant=0
+- GPT 引用2: span=[168, 168], relevant=0
+
+### 陈述 7
+- They have a complex society with a conception of justice that involves killing outsiders.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[279-280]`
+- au=1.5887361764907837, eu=0.09336607158184052, au′=1.588735580444336, eu′=0.04896906763315201
+- top_logits 方差 (pvariance, 有限 logit): 0.23961170545284405
+- top_logits 数值: `[20.0, 19.86842155456543, 19.473684310913086, 19.078948974609375, 18.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 277 | 277 | 20.0 | "What do you want with us?" |
+| 2 | 280 | 280 | 19.86842155456543 | Unfortunately, you must die." |
+| 3 | 288 | 288 | 19.473684310913086 | "You were brought here for that purpose. |
+| 4 | 279 | 279 | 19.078948974609375 | "You already suspect. |
+| 5 | 289 | 289 | 18.68421173095703 | It is part of our conception of justice. |
+
+**跨度** `[288-290]`
+- au=1.5887361764907837, eu=0.09336607158184052, au′=1.588735580444336, eu′=0.04896906763315201
+- top_logits 方差 (pvariance, 有限 logit): 0.23961170545284405
+- top_logits 数值: `[20.0, 19.86842155456543, 19.473684310913086, 19.078948974609375, 18.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 277 | 277 | 20.0 | "What do you want with us?" |
+| 2 | 280 | 280 | 19.86842155456543 | Unfortunately, you must die." |
+| 3 | 288 | 288 | 19.473684310913086 | "You were brought here for that purpose. |
+| 4 | 279 | 279 | 19.078948974609375 | "You already suspect. |
+| 5 | 289 | 289 | 18.68421173095703 | It is part of our conception of justice. |
+- GPT 引用1: span=[279, 280], relevant=0
+- GPT 引用2: span=[288, 290], relevant=1
+
+### 陈述 8
+- They have advanced technology like energy guns and robots, but are stuck in a static civilization.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[143-143]`
+- au=1.588739275932312, eu=0.0917874276638031, au′=1.588739037513733, eu′=0.04810125380754471
+- top_logits 方差 (pvariance, 有限 logit): 0.5373966396684409
+- top_logits 数值: `[20.657896041870117, 20.394737243652344, 19.73684310913086, 19.60526466369629, 18.552631378173828]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 20.657896041870117 | For Kal-Jmar's dome was not the thing of steelite that protected Lillis: it was a tenuous, globular field of force that defied analysis as it defied explosives and diamond drills. |
+| 2 | 227 | 227 | 20.394737243652344 | The natives slowed down and spread out to surround the wrecked sand car, and it could be seen that most of them were armed with spears, although some had the slim Benson energy guns—strictly forbidden to Martians. |
+| 3 | 141 | 141 | 19.73684310913086 | The machines, the artifacts, the records of the Martians were all there, perfectly preserved inside the city's bubble-like dome, after God knew how many thousands of years. |
+| 4 | 298 | 298 | 19.60526466369629 | "There are many secrets in Kal-Jmar," the Martian said, "among them a very simple catalyzing agent which could within fifty years transform Mars to a planet with Terrestrially-thick atmosphere." |
+| 5 | 151 | 151 | 18.552631378173828 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+
+**跨度** `[227-227]`
+- au=1.588739275932312, eu=0.0917874276638031, au′=1.588739037513733, eu′=0.04810125380754471
+- top_logits 方差 (pvariance, 有限 logit): 0.5373966396684409
+- top_logits 数值: `[20.657896041870117, 20.394737243652344, 19.73684310913086, 19.60526466369629, 18.552631378173828]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 20.657896041870117 | For Kal-Jmar's dome was not the thing of steelite that protected Lillis: it was a tenuous, globular field of force that defied analysis as it defied explosives and diamond drills. |
+| 2 | 227 | 227 | 20.394737243652344 | The natives slowed down and spread out to surround the wrecked sand car, and it could be seen that most of them were armed with spears, although some had the slim Benson energy guns—strictly forbidden to Martians. |
+| 3 | 141 | 141 | 19.73684310913086 | The machines, the artifacts, the records of the Martians were all there, perfectly preserved inside the city's bubble-like dome, after God knew how many thousands of years. |
+| 4 | 298 | 298 | 19.60526466369629 | "There are many secrets in Kal-Jmar," the Martian said, "among them a very simple catalyzing agent which could within fifty years transform Mars to a planet with Terrestrially-thick atmosphere." |
+| 5 | 151 | 151 | 18.552631378173828 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+
+**跨度** `[232-232]`
+- au=1.588739275932312, eu=0.0917874276638031, au′=1.588739037513733, eu′=0.04810125380754471
+- top_logits 方差 (pvariance, 有限 logit): 0.5373966396684409
+- top_logits 数值: `[20.657896041870117, 20.394737243652344, 19.73684310913086, 19.60526466369629, 18.552631378173828]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 20.657896041870117 | For Kal-Jmar's dome was not the thing of steelite that protected Lillis: it was a tenuous, globular field of force that defied analysis as it defied explosives and diamond drills. |
+| 2 | 227 | 227 | 20.394737243652344 | The natives slowed down and spread out to surround the wrecked sand car, and it could be seen that most of them were armed with spears, although some had the slim Benson energy guns—strictly forbidden to Martians. |
+| 3 | 141 | 141 | 19.73684310913086 | The machines, the artifacts, the records of the Martians were all there, perfectly preserved inside the city's bubble-like dome, after God knew how many thousands of years. |
+| 4 | 298 | 298 | 19.60526466369629 | "There are many secrets in Kal-Jmar," the Martian said, "among them a very simple catalyzing agent which could within fifty years transform Mars to a planet with Terrestrially-thick atmosphere." |
+| 5 | 151 | 151 | 18.552631378173828 | Tate, a physicist, had stumbled on a field that seemed to be identical in properties to the Kal-Jmar dome; and what is more, he had found a force that would break it down. |
+- GPT 引用1: span=[143, 143], relevant=0
+- GPT 引用2: span=[227, 227], relevant=0
+- GPT 引用3: span=[232, 232], relevant=1
+
+### 陈述 9
+- They have a secret cache of technology that could terraform Mars, but keep it hidden from humans.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[298-303]`
+- au=1.650961507948523e-06, eu=0.2934361696243286, au′=-0.0, eu′=0.03987407684326172
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.078948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 298 | 298 | 24.078948974609375 | "There are many secrets in Kal-Jmar," the Martian said, "among them a very simple catalyzing agent which could within fifty years transform Mars to a planet with Terrestrially-thick atmosphere." |
+- GPT 引用1: span=[298, 303], relevant=1
+
+### 陈述 10
+So in summary, the Martians are a mysterious and dangerous alien race with a unique biology and culture that is vastly different from humans.
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+## squality_test_idx0 (idx=0, squality_test)
+### 问题
+What is the plot of the story?
+
+### 参考答案（数据集）
+- ref1: Noork is in a tree on a moon named Sekk, watching a woman walk through the jungle.  When they speak, they learn that Noork has been living with her brother, Gurn.  With this introduction, they begin to travel together.  The woman explains that she had been captured by slavers in the past but had escaped.  The escapees were then followed by the Misty Ones, and the woman was the only one who made a complete escape.  Noork states that he will visit the island where the Misty Ones live one day, but the woman does not answer. When Noork turns back to her, she has disappeared, and Noork is attacked.  He hides in the trees and spies the Misty Ones below.  He throws fruit down on them until he can easily see them by the stains the fruit makes on their clothing, then attacks with arrows.  The Misty…
+- ref2: Noork, a man from Earth who doesn’t remember who he is, lives in the jungle on a second moon. He knows he was brought there by what he remembers as a huge bird and that he was taken in by a man named Gurn and the Vasad people of the jungle. He meets a woman named Sarna with whom he shares a mutual attraction, and it turns out that she is Gurn’s sister. Shortly after they discover this, they are attacked. Sarna vanishes and Noork hides, eventually discovering that the “Misty Ones” who attacked them, thought to be demons, look similar to him and can be “skinned”; this is important because their skins or coverings allow the wearer to be nearly invisible like them.   Noork passes a message along via another Vasad to tell Gurn what he has learned about the Misty Ones, and to say that Noork has …
+- ref3: Noork is a man from Earth whose real name is Stephen Dietrich; he was pursuing the Nazi Dr. Karl Von Mark, the last of the Axis criminals at large. Dietrich followed Von Mark to Africa where Von Mark took off in a spaceship, and Dietrich followed. Both landed on Sekk, a second moon past Luna, but Dietrich’s landing was so rough that he lost his memory. When the locals found him, he said, “New York,” which they didn’t understand and named him Noork. Noork lives among the Vasads and learns their language.   Noork and Tholon Sarna meet in the jungle and become friends. One day as they are talking, Noork hears feet scuffing, and Tholon disappears. Noork climbs a tree to find out where the Misty Ones are (They are invisible.). He detects movement and throws overripe fruit, which stains the cloa…
+- ref4: Noork searches for the bird that dropped him on a cliff (as well as another bird) when he is discovered by the Vasads. He repeated the word "New York", and so the Vasads call him Noork. From his perch, he now watches a girl—Tholon Sarna--moving along a trail below. She is the sister of Gurn, the Vasad leader. Gurn has been exiled from their home city of Grath because he doesn't believe in the enslavement of the Zuran, and Tholon Sarna has recently evaded capture by her enemies, the men of Konto. The Misty Ones--slavers dwellling at the Temple of the Skull and feared deeply by the Vasads--follow her. As Tholon Sarna and Noork walk, she is captured by a Misty One made invisible by a special robe. A Misty One clubs Noork, injuring his arm. Thanks to their blurry outlines, Noork realizes the M…
+
+### 模型全文输出
+```
+<statement>The plot of the story "Raiders of the Second Moon" is as follows:<cite></cite></statement>
+
+<statement>Noork, a white-skinned savage, lives in a jungle valley on the planet Sekk. He has lost his memory but is aided by the hairy Vasads of the jungle and their leader Gurn. Noork is searching for a bird that came from space and landed on Sekk. He believes it may hold the key to his lost memories.<cite>[1-1][11-11][13-13]</cite></statement>
+
+<statement>Noork rescues a golden-skinned girl named Sarna from the Misty Ones, invisible beings who live on an island in a nearby lake. Sarna tells him she was captured by the Misty Ones along with other slaves from her city Grath. Noork decides to help her rescue her friends and escape from the island.<cite>[11-11][12-12][64-64]</cite></statement>
+
+<statement>They infiltrate the Temple of the Skull, where the Misty Ones are guards, and free the prisoners. However, they are pursued by the Misty Ones and Noork fights them off using his bow and arrows. He kills their leader and they flee.<cite>[91-94][96-97][99-100]</cite></statement>
+
+<statement>Noork, Sarna, and her brother Gurn escape the island and return to the jungle. They are joined by Rold, a slave who helped them. Noork learns he is actually Captain Dietrich from Earth and was searching for the Nazi scientist Von Mark, who was also on Sekk. Von Mark had been experimenting with an invisible material. Noork and his allies defeat Von Mark and his men and Noork regains his memories. He decides to live in peace with Gurn and Sarna in the jungle.<cite>[347-347][349-349][351-351]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 399], 共 399 句。
+引用指标: R=0.3, P=0.09090909090909091, F1=0.13953488372093023
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=6049, completion_tokens=125
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The plot of the story "Raiders of the Second Moon" is as follows:
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+Noork, a white-skinned savage, lives in a jungle valley on the planet Sekk. He has lost his memory but is aided by the hairy Vasads of the jungle and their leader Gurn. Noork is searching for a bird that came from space and landed on Sekk. He believes it may hold the key to his lost memories.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[1-1]`
+- au=0.6816830039024353, eu=0.18446595966815948, au′=0.6816823482513428, eu′=0.04328017681837082
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[22.631580352783203, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 22.631580352783203 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Raiders of the Second Moon By GENE ELLERMAN A strange destiny had erased Noork's memory,  and had brought him to this tiny world—to  write an end to his first existence. |
+| 2 | 11 | 11 | 21.578948974609375 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+
+**跨度** `[11-11]`
+- au=0.6816830039024353, eu=0.18446595966815948, au′=0.6816823482513428, eu′=0.04328017681837082
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[22.631580352783203, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 22.631580352783203 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Raiders of the Second Moon By GENE ELLERMAN A strange destiny had erased Noork's memory,  and had brought him to this tiny world—to  write an end to his first existence. |
+| 2 | 11 | 11 | 21.578948974609375 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+
+**跨度** `[13-13]`
+- au=0.6816830039024353, eu=0.18446595966815948, au′=0.6816823482513428, eu′=0.04328017681837082
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[22.631580352783203, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 22.631580352783203 | Produced by Greg Weeks, Mary Meehan and the Online Distributed Proofreading Team at http://www.pgdp.net Raiders of the Second Moon By GENE ELLERMAN A strange destiny had erased Noork's memory,  and had brought him to this tiny world—to  write an end to his first existence. |
+| 2 | 11 | 11 | 21.578948974609375 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+- GPT 引用1: span=[1, 1], relevant=0
+- GPT 引用2: span=[11, 11], relevant=0
+- GPT 引用3: span=[13, 13], relevant=0
+
+### 陈述 2
+Noork rescues a golden-skinned girl named Sarna from the Misty Ones, invisible beings who live on an island in a nearby lake. Sarna tells him she was captured by the Misty Ones along with other slaves from her city Grath. Noork decides to help her rescue her friends and escape from the island.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[11-11]`
+- au=1.589449405670166, eu=0.0882694274187088, au′=1.589449405670166, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.6994459675290272
+- top_logits 数值: `[22.10526466369629, 20.789474487304688, 20.657896041870117, 20.131580352783203, 19.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 11 | 11 | 22.10526466369629 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+| 2 | 64 | 64 | 20.789474487304688 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+| 3 | 12 | 12 | 20.657896041870117 | For down there moved alertly a golden skinned girl, her only weapons a puny polished bow of yellow wood and a sheathed dagger. |
+| 4 | 21 | 21 | 20.131580352783203 | The girl heard. |
+| 5 | 68 | 68 | 19.60526466369629 | I alone escaped." |
+
+**跨度** `[12-12]`
+- au=1.589449405670166, eu=0.0882694274187088, au′=1.589449405670166, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.6994459675290272
+- top_logits 数值: `[22.10526466369629, 20.789474487304688, 20.657896041870117, 20.131580352783203, 19.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 11 | 11 | 22.10526466369629 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+| 2 | 64 | 64 | 20.789474487304688 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+| 3 | 12 | 12 | 20.657896041870117 | For down there moved alertly a golden skinned girl, her only weapons a puny polished bow of yellow wood and a sheathed dagger. |
+| 4 | 21 | 21 | 20.131580352783203 | The girl heard. |
+| 5 | 68 | 68 | 19.60526466369629 | I alone escaped." |
+
+**跨度** `[64-64]`
+- au=1.589449405670166, eu=0.0882694274187088, au′=1.589449405670166, eu′=0.04617253318428993
+- top_logits 方差 (pvariance, 有限 logit): 0.6994459675290272
+- top_logits 数值: `[22.10526466369629, 20.789474487304688, 20.657896041870117, 20.131580352783203, 19.60526466369629]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 11 | 11 | 22.10526466369629 | In one of those green valleys the white savage that the Vasads called Noork squatted in the ample crotch of a jungle giant and watched the trail forty feet below. |
+| 2 | 64 | 64 | 20.789474487304688 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+| 3 | 12 | 12 | 20.657896041870117 | For down there moved alertly a golden skinned girl, her only weapons a puny polished bow of yellow wood and a sheathed dagger. |
+| 4 | 21 | 21 | 20.131580352783203 | The girl heard. |
+| 5 | 68 | 68 | 19.60526466369629 | I alone escaped." |
+- GPT 引用1: span=[11, 12], relevant=0
+- GPT 引用2: span=[64, 64], relevant=0
+
+### 陈述 3
+They infiltrate the Temple of the Skull, where the Misty Ones are guards, and free the prisoners. However, they are pursued by the Misty Ones and Noork fights them off using his bow and arrows. He kills their leader and they flee.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[91-94]`
+- au=2.276838541030884, eu=0.0525587759912014, au′=2.5383639335632324, eu′=0.0530669167637825
+- top_logits 方差 (pvariance, 有限 logit): 0.6925209631881808
+- top_logits 数值: `[20.263158798217773, 18.552631378173828, 18.289474487304688, 17.894737243652344, 17.763158798217773, 17.763158798217773, 17.5, 17.5, 17.36842155456543, 17.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 20.263158798217773 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 216 | 216 | 18.552631378173828 | Noork drifted slowly up the huge series of long bench-like steps that led up to the gaping jaws of the Skull. |
+| 3 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 4 | 91 | 91 | 17.894737243652344 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 5 | 106 | 106 | 17.763158798217773 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 6 | 74 | 74 | 17.763158798217773 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 7 | 93 | 93 | 17.5 | They were not gods, or demons, or even the ghostly servants of demons. |
+| 8 | 108 | 108 | 17.5 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 9 | 88 | 88 | 17.36842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+| 10 | 95 | 95 | 17.36842155456543 | And the monsters fled. |
+
+**跨度** `[96-97]`
+- au=2.276838541030884, eu=0.0525587759912014, au′=2.5383639335632324, eu′=0.0530669167637825
+- top_logits 方差 (pvariance, 有限 logit): 0.6925209631881808
+- top_logits 数值: `[20.263158798217773, 18.552631378173828, 18.289474487304688, 17.894737243652344, 17.763158798217773, 17.763158798217773, 17.5, 17.5, 17.36842155456543, 17.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 20.263158798217773 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 216 | 216 | 18.552631378173828 | Noork drifted slowly up the huge series of long bench-like steps that led up to the gaping jaws of the Skull. |
+| 3 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 4 | 91 | 91 | 17.894737243652344 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 5 | 106 | 106 | 17.763158798217773 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 6 | 74 | 74 | 17.763158798217773 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 7 | 93 | 93 | 17.5 | They were not gods, or demons, or even the ghostly servants of demons. |
+| 8 | 108 | 108 | 17.5 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 9 | 88 | 88 | 17.36842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+| 10 | 95 | 95 | 17.36842155456543 | And the monsters fled. |
+
+**跨度** `[99-100]`
+- au=2.276838541030884, eu=0.0525587759912014, au′=2.5383639335632324, eu′=0.0530669167637825
+- top_logits 方差 (pvariance, 有限 logit): 0.6925209631881808
+- top_logits 数值: `[20.263158798217773, 18.552631378173828, 18.289474487304688, 17.894737243652344, 17.763158798217773, 17.763158798217773, 17.5, 17.5, 17.36842155456543, 17.36842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 20.263158798217773 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 216 | 216 | 18.552631378173828 | Noork drifted slowly up the huge series of long bench-like steps that led up to the gaping jaws of the Skull. |
+| 3 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 4 | 91 | 91 | 17.894737243652344 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 5 | 106 | 106 | 17.763158798217773 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 6 | 74 | 74 | 17.763158798217773 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 7 | 93 | 93 | 17.5 | They were not gods, or demons, or even the ghostly servants of demons. |
+| 8 | 108 | 108 | 17.5 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 9 | 88 | 88 | 17.36842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+| 10 | 95 | 95 | 17.36842155456543 | And the monsters fled. |
+- GPT 引用1: span=[91, 94], relevant=1
+- GPT 引用2: span=[96, 97], relevant=0
+- GPT 引用3: span=[99, 100], relevant=0
+
+### 陈述 4
+Noork, Sarna, and her brother Gurn escape the island and return to the jungle. They are joined by Rold, a slave who helped them. Noork learns he is actually Captain Dietrich from Earth and was searching for the Nazi scientist Von Mark, who was also on Sekk. Von Mark had been experimenting with an invisible material. Noork and his allies defeat Von Mark and his men and Noork regains his memories. He decides to live in peace with Gurn and Sarna in the jungle.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[347-347]`
+- au=2.2777512073516846, eu=0.05180640146136284, au′=2.9176642894744873, eu′=0.052924785763025284
+- top_logits 方差 (pvariance, 有限 logit): 0.33396821114525665
+- top_logits 数值: `[19.60526466369629, 18.947368621826172, 18.552631378173828, 18.421052932739258, 18.289474487304688, 18.026315689086914, 17.894737243652344, 17.894737243652344, 17.763158798217773, 17.631580352783203]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 106 | 106 | 19.60526466369629 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 2 | 71 | 71 | 18.947368621826172 | "Some day," he said reflectively, "I am going to visit the island of the unseen evil beings who stole away your friends. |
+| 3 | 72 | 72 | 18.552631378173828 | Perhaps after I have taken you to your brother's hidden village, and from there to your city of Grath...." He smiled. |
+| 4 | 74 | 74 | 18.421052932739258 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 5 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 6 | 108 | 108 | 18.026315689086914 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 7 | 145 | 145 | 17.894737243652344 | Two words linked Noork with the past, the two words that the Vasads had slurred into his name: New York. |
+| 8 | 347 | 347 | 17.894737243652344 | Then his voice changed—thickened—as he saw the features of Noork. |
+| 9 | 147 | 147 | 17.763158798217773 | Noork paddled the long flat dugout strongly away from the twilight shore toward the shadowy loom of the central island. |
+| 10 | 64 | 64 | 17.631580352783203 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+
+**跨度** `[349-349]`
+- au=2.2777512073516846, eu=0.05180640146136284, au′=2.9176642894744873, eu′=0.052924785763025284
+- top_logits 方差 (pvariance, 有限 logit): 0.33396821114525665
+- top_logits 数值: `[19.60526466369629, 18.947368621826172, 18.552631378173828, 18.421052932739258, 18.289474487304688, 18.026315689086914, 17.894737243652344, 17.894737243652344, 17.763158798217773, 17.631580352783203]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 106 | 106 | 19.60526466369629 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 2 | 71 | 71 | 18.947368621826172 | "Some day," he said reflectively, "I am going to visit the island of the unseen evil beings who stole away your friends. |
+| 3 | 72 | 72 | 18.552631378173828 | Perhaps after I have taken you to your brother's hidden village, and from there to your city of Grath...." He smiled. |
+| 4 | 74 | 74 | 18.421052932739258 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 5 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 6 | 108 | 108 | 18.026315689086914 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 7 | 145 | 145 | 17.894737243652344 | Two words linked Noork with the past, the two words that the Vasads had slurred into his name: New York. |
+| 8 | 347 | 347 | 17.894737243652344 | Then his voice changed—thickened—as he saw the features of Noork. |
+| 9 | 147 | 147 | 17.763158798217773 | Noork paddled the long flat dugout strongly away from the twilight shore toward the shadowy loom of the central island. |
+| 10 | 64 | 64 | 17.631580352783203 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+
+**跨度** `[351-351]`
+- au=2.2777512073516846, eu=0.05180640146136284, au′=2.9176642894744873, eu′=0.052924785763025284
+- top_logits 方差 (pvariance, 有限 logit): 0.33396821114525665
+- top_logits 数值: `[19.60526466369629, 18.947368621826172, 18.552631378173828, 18.421052932739258, 18.289474487304688, 18.026315689086914, 17.894737243652344, 17.894737243652344, 17.763158798217773, 17.631580352783203]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 106 | 106 | 19.60526466369629 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 2 | 71 | 71 | 18.947368621826172 | "Some day," he said reflectively, "I am going to visit the island of the unseen evil beings who stole away your friends. |
+| 3 | 72 | 72 | 18.552631378173828 | Perhaps after I have taken you to your brother's hidden village, and from there to your city of Grath...." He smiled. |
+| 4 | 74 | 74 | 18.421052932739258 | His keen ears, now that he was no longer speaking, caught the scuffing of feet into the jungle behind him. |
+| 5 | 107 | 107 | 18.289474487304688 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 6 | 108 | 108 | 18.026315689086914 | Noork shrugged his shoulders and set off at a mile-devouring pace down the game trail toward the lake where the Temple of the Skull and its unseen guardians lay. |
+| 7 | 145 | 145 | 17.894737243652344 | Two words linked Noork with the past, the two words that the Vasads had slurred into his name: New York. |
+| 8 | 347 | 347 | 17.894737243652344 | Then his voice changed—thickened—as he saw the features of Noork. |
+| 9 | 147 | 147 | 17.763158798217773 | Noork paddled the long flat dugout strongly away from the twilight shore toward the shadowy loom of the central island. |
+| 10 | 64 | 64 | 17.631580352783203 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+- GPT 引用1: span=[347, 347], relevant=0
+- GPT 引用2: span=[349, 349], relevant=0
+- GPT 引用3: span=[351, 351], relevant=0
+
+## squality_test_idx1 (idx=1, squality_test)
+### 问题
+Describe the setting of the story
+
+### 参考答案（数据集）
+- ref1: The story begins in thick jungle on Sekk, which we are told is a "second moon" which retains a "breathable atmosphere" around a lake surrounded by eleven jungled valleys.  In this way, it is implied that Sekk is a second moon of Earth.  In the jungle, we meet Noork and a young woman named Sarna.  They begin traveling together through the jungle, but soon Sarna disappears and Noork is attacked.  This is our first encounter with the Misty Ones, who blend in with the jungle foliage.  Noork defeats the Misty Ones and continues toward the lake and island where they make their home.  Noork briefly encounters his friend Ud near the marshy lowlands that lie between the jungled valleys on Sekk and the central Lake of Uzdon, but this area is not described.  When Noork reaches the central island in t…
+- ref2: The story takes place sometime after World War II on a second moon that is obscured by the moon we know and is known as Sekk. The moon Sekk has a diameter of less than five-hundred miles and a thirty-two-hour revolution, and it has a breathable atmosphere that sustains life. Life on Sekk is concentrated within a star-shaped cavity that features a lake and eleven valleys branching out from it, all of which contain jungles. The action of the story happens in the jungle areas, the lake, a walled temple, and the cavern prison beneath it.
+- ref3: The story is set on Sekk, the second moon, beyond Luna and blocked from Earth’s view by Luna. Sekk is less than 500 miles in diameter and has a revolution period of 32 hours. It has a breathable atmosphere and features a star-shaped center surrounded by twelve valleys thick with jungle growth. Some trees are over forty feet tall; Noork uses these trees to surveil the area around him. Several groups live on Sekk in different villages, and there are dangerous wild animals called spotted narls. There is a mysterious group of beings, believed to be demons, called the Misty Ones because they are invisible. They live on an island in the middle of a lake and have a huge skull that represents their god, Uzdon. Female slaves are held captive in a pit beneath the skull. The story takes place after W…
+- ref4: The story takes place on a small moon called Sekk, five hundred miles wide with a thirty-two-hour day. The atmosphere on Sekk supports life, which exists in rich abundance within a star-like depression in its earth. Deep in this depression is a lake surrounded by twelve vast, green valleys and jungles. The jungles are dense and covered with massive trees that look like giants. Many of these trees have sticky fruits that Noork later uses to help him see the Misty Ones.  Noork paddles across the lake in order to reach the island of Manak, which is home to the Temple of Skull where the Misty Ones make their sacrifices to the gods Uzdon and Lornu. The Temple is comprised mostly of stone, and the sacrificial altar is made of brass, gold, and silver. After navigating through the Temple to find T…
+
+### 模型全文输出
+```
+<statement>The story is set on the planet Sekk, a small satellite of Earth with a breathable atmosphere and a period of revolution of 32 hours. Sekk has a sunken star-shaped cavity with an oval lake in the depths and eleven radiating tips that are valleys green with jungle growth. The story takes place in one of these green valleys, where the main character Noork lives among the hairy Vasads and their golden-skinned leader Gurn.<cite>[8-11][41-41]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 399], 共 399 句。
+引用指标: R=1.0, P=0.5, F1=0.6666666666666666
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1282, completion_tokens=21
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The story is set on the planet Sekk, a small satellite of Earth with a breathable atmosphere and a period of revolution of 32 hours. Sekk has a sunken star-shaped cavity with an oval lake in the depths and eleven radiating tips that are valleys green with jungle growth. The story takes place in one of these green valleys, where the main character Noork lives among the hairy Vasads and their golden-skinned leader Gurn.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[8-11]`
+- au=0.6825129389762878, eu=0.17674414813518524, au′=0.6825121641159058, eu′=0.04117009416222572
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[23.421052932739258, 23.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 23.421052932739258 | Small is Sekk, that second moon, less than five hundred miles in diameter, but the period of its revolution is thirty two hours, and its meaner mass retains a breathable atmosphere. |
+| 2 | 5 | 5 | 23.157896041870117 | Beyond earth swings that airless pocked mass of fused rock and gray volcanic dust that we know as Luna. |
+
+**跨度** `[41-41]`
+- au=0.6825129389762878, eu=0.17674414813518524, au′=0.6825121641159058, eu′=0.04117009416222572
+- top_logits 方差 (pvariance, 有限 logit): 0.017312887302978197
+- top_logits 数值: `[23.421052932739258, 23.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 8 | 8 | 23.421052932739258 | Small is Sekk, that second moon, less than five hundred miles in diameter, but the period of its revolution is thirty two hours, and its meaner mass retains a breathable atmosphere. |
+| 2 | 5 | 5 | 23.157896041870117 | Beyond earth swings that airless pocked mass of fused rock and gray volcanic dust that we know as Luna. |
+- GPT 引用1: span=[8, 11], relevant=1
+- GPT 引用2: span=[41, 41], relevant=0
+
+## squality_test_idx2 (idx=2, squality_test)
+### 问题
+What is Gurn's role in the story?
+
+### 参考答案（数据集）
+- ref1: We first hear Gurn's name mentioned by Noork in his initial meeting with Sarna.  He tells her that he has been living with the wild Vasads of the jungle with Gurn, his friend and their chief.  Noork goes on to say that Gurn is an exile from the walled city of Grath and asks Sarna if she knows why this is.  Sarna says that her brother says they should no longer enslave Zurans they capture from other valleys.  In this way, their relationships with Gurn build a bridge between them, allowing them to consider a relationship with one another.  Gurn is next mentioned when Noork encounters his friend Ud near the central lake of Sekk, the moon they are on.  Noork asks Ud to go to their mutual friend Gurn and pass on a message.  Noork asks Ud to tell Gurn that the Misty Ones can be trapped and skinn…
+- ref2: Gurn is described as a renegade and the leader of the Vasad, a hairy people living in the jungle on Sekk. He is tall, strong, golden-skinned, and has proven to be a friend to Noork. He wears bracelets connected by human hair. He has been exiled from the city of Grath because he spoke out against keeping the captured people from other valleys as slaves. He is Sarna’s brother, and she seems to trust Noork more when he mentions Gurn. After he and Sarna are attacked, Noork passes a message to another Vasad, Ud, to tell Gurn that the “misty people” they fear can be killed and their skins used to conceal them, and that he’s going to save Sarna. Later, after Noork and Sarna are captured by the Nazi Doctor Von Mark, Gurn and some warriors show up just in time to save them.
+- ref3: Gurn is Tholon Sarna’s brother and the leader of a group of Vasads. He is tall and strong, wears a bracelet made of gold discs linked together with human hair, and talks with his own shadow when he thinks. Gurn was exiled from the city of Grath, whose leaders called him a traitor for voicing his opinion that they should not make their captured Zurans slaves. When Noork leaves to rescue Tholon from the Misty Ones, he sends word to Gurn via Ud that the Misty Ones are not demons but flesh and bone beings who can be trapped and skinned and that he is going to rescue Gurn’s sister from the Misty Ones. At the end of the story, when Von Mark and his men have captured Noork, Tholon, and Rold, Gurn and his men arrive and pelt the Waris with arrows to rescue Noork and the others. Gurn and his men ha…
+- ref4: Gurn is the golden-skinned leader of the Vasads and Tholon Sarna’s brother. Gurn discovers Noork when he first lands on Sekk and reminds him that he has not always lived in the valleys of the moon. As leader of the Vasads, Gurn has been exiled from his home city of Grath for speaking out against the enslavement of the people of Zura. Gurn and the Vasads fear the Misty Ones that make sacrifices to Uzdon at the Temple of the Skull, believing they are gods or demons. When Noork discovers the Misty Ones can be shed of their invisibility, he sends his friend Ud to inform Gurn. Upon hearing this news, Gurn brings the Vasads to rescue his sister, Tholon Sarna, and they arrive just in time to prevent Dr. Von Mark from killing Noork. Instead, Gurn kills Dr. Von Mark by shooting him with arrows, and…
+
+### 模型全文输出
+```
+<statement>Based on the story, Gurn is a renegade from the walled city of Grath who has joined the Vasads of the jungle.<cite>[41-41][49-49]</cite></statement>
+
+<statement>He is the golden-skinned leader of the Vasads and is friends with Noork.<cite>[41-41]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 399], 共 399 句。
+引用指标: R=0.5, P=0.6666666666666666, F1=0.5714285714285715
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1482, completion_tokens=36
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, Gurn is a renegade from the walled city of Grath who has joined the Vasads of the jungle.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[41-41]`
+- au=0.6815455555915833, eu=0.1885855346918106, au′=0.6815447211265564, eu′=0.04441846162080765
+- top_logits 方差 (pvariance, 有限 logit): 0.10820617305944324
+- top_logits 数值: `[21.842105865478516, 21.18421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 49 | 49 | 21.842105865478516 | "He is also an exile from the walled city of Grath. |
+| 2 | 41 | 41 | 21.18421173095703 | "For many days have I dwelt among the wild Vasads of the jungle with their golden-skinned chief, Gurn, for my friend." |
+
+**跨度** `[49-49]`
+- au=0.6815455555915833, eu=0.1885855346918106, au′=0.6815447211265564, eu′=0.04441846162080765
+- top_logits 方差 (pvariance, 有限 logit): 0.10820617305944324
+- top_logits 数值: `[21.842105865478516, 21.18421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 49 | 49 | 21.842105865478516 | "He is also an exile from the walled city of Grath. |
+| 2 | 41 | 41 | 21.18421173095703 | "For many days have I dwelt among the wild Vasads of the jungle with their golden-skinned chief, Gurn, for my friend." |
+- GPT 引用1: span=[41, 41], relevant=0
+- GPT 引用2: span=[49, 49], relevant=1
+
+### 陈述 1
+He is the golden-skinned leader of the Vasads and is friends with Noork.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[41-41]`
+- au=0.6821300387382507, eu=0.17674414813518524, au′=0.6821292638778687, eu′=0.04117009416222572
+- top_logits 方差 (pvariance, 有限 logit): 0.432824692237773
+- top_logits 数值: `[23.947368621826172, 22.631580352783203]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 41 | 41 | 23.947368621826172 | "For many days have I dwelt among the wild Vasads of the jungle with their golden-skinned chief, Gurn, for my friend." |
+| 2 | 40 | 40 | 22.631580352783203 | "I am Noork," the man told her. |
+- GPT 引用1: span=[41, 41], relevant=1
+
+## squality_test_idx3 (idx=3, squality_test)
+### 问题
+What is the significance of enslavement in the story?
+
+### 参考答案（数据集）
+- ref1: Enslavement and freedom as themes run throughout the story.  When Noork and Sarna first meet each other in the opening scene, one of the ways they decide to trust one another is because of their mutual relationships with Gurn, a third character.  Gurn has been exiled from the city of Grath because he says that his people should no longer enslave the captured Zurans from other valleys of Sekk.  In the next scene, we learn that Sarna, Gurn's sister, was kidnapped by one group of slavers, escaped them with four others, and only narrowly escaped capture by a second group of slavers, the Misty Ones from the Temple of the Skull, who captured the other four of her group.  Noork tells her that one day he will visit the island of Misty Ones who took her friends.  At this time, he realizes that Sarn…
+- ref2: Enslavement is a major theme throughout the story. Gurn has been exiled for speaking out against the slavery that his people have inflicted on others, which is how he a Noork find one another. Noork’s travels during the action of the story are undertaken in an effort to save Sarna, who has now been enslaved twice. The person he enlists to help him, Rold, is also a slave. When Doctor Von Mark and the Misty Ones ambush Noork and the doctor recognizes him as Stephen Dietrich, he mentions that the trapper has now become the trapped. A moment later, Gurn and the other warriors free Noork from the doctor’s enslavement. Most of the story involves various people being enslaved or feeling a certain way about enslavement, and the element of Nazism in the story also lends it a broader theme of the en…
+- ref3: Enslavement seems to be the preferred way to deal with enemies on Sekk, and when Gurn speaks out against enslaving their Zuran captives, the city rulers label him a traitor and exile him from the city. His sister, Tholon, was captured by slavers but managed to escape with four others. However, when they passed near the Lake of Uzdon, the Misty Ones captured her four fellow escapees. And while Tholon is telling her story to Noork, she is kidnapped by the Misty Ones and spirited away to their city of Uzdon. The Misty Ones offer beautiful slave girls chosen by their priests as sacrifices to their god Uzdon, binding them to the altar and removing their hearts while still alive. The Misty Ones also enslave others to be workers. Slaves work in their cultivated fields and gardens, and in the skul…
+- ref4: Enslavement is an important topic in the story as many of the Zuran peoples are enslaved by various groups. The men of Kanto are enemies of the Vasads and the people of Grath, but the city of Grath also enslaves people. When Gurn speaks out against the practice, he is exiled from Grath and becomes transient with his group of Vasads. When Noork first meets Tholon Sarna, she has fled her initial enslavement, narrowly avoided enslavement by the men of Kanto, and is then captured by the Misty Ones, who also have slaves working on the island of Manak. Noork frees Rold from his enslavement, and enlists his help to prevent Tholon Sarna from becoming a human sacrifice to Uzdon. When the Vasads defeat the Misty Ones and Dr. Von Mark, they are free to live in their own society without the constraint…
+
+### 模型全文输出
+```
+<statement>Based on the story, enslavement seems to be a significant issue in the world of Sekk. Some key points:<cite></cite></statement>
+
+<statement>- The golden-skinned people of the valley cities enslave the hairy beast men of the jungle. This is the basis for the eternal war between the two groups.<cite>[113-113]</cite></statement>
+
+<statement>- The girl Tholon Sarna is captured by slavers and would have been taken back to the city of Grath to be a slave. Noork rescues her from this fate.<cite>[64-68][207-208]</cite></statement>
+
+<statement>- The Misty Ones capture and enslave people from the mainland to use as sacrifices or labor on their island.<cite></cite></statement>
+
+<statement>- The priests of Uzdon enslave the female slaves and choose one each day for sacrifice to their god.<cite>[161-162][201-202][204-204]</cite></statement>
+
+<statement>- The slave Rold is willing to help Noork rescue Sarna because he hopes to mate with her and take her back to his home city of Konto.<cite>[195-196][197-197]</cite></statement>
+
+<statement>So in summary, enslavement is a major part of the social and political structure of Sekk, with both the valley cities and the jungle tribes engaging in it. It drives much of the conflict and character motivations in the story.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 399], 共 399 句。
+引用指标: R=0.42857142857142855, P=0.42857142857142855, F1=0.42857142857142855
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=5003, completion_tokens=110
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, enslavement seems to be a significant issue in the world of Sekk. Some key points:
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+- The golden-skinned people of the valley cities enslave the hairy beast men of the jungle. This is the basis for the eternal war between the two groups.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[113-113]`
+- au=1.650961507948523e-06, eu=0.2934361696243286, au′=-0.0, eu′=0.03987407684326172
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.078948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 113 | 113 | 24.078948974609375 | For between the hairy quarter-ton beast men of the jungles of Sekk and the golden men of the valley cities who enslaved them there was eternal war. |
+- GPT 引用1: span=[113, 113], relevant=1
+
+### 陈述 2
+- The girl Tholon Sarna is captured by slavers and would have been taken back to the city of Grath to be a slave. Noork rescues her from this fate.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[64-68]`
+- au=1.9947274267906323e-06, eu=0.31404945254325867, au′=-0.0, eu′=0.04377879574894905
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[21.842105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 64 | 64 | 21.842105865478516 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+
+**跨度** `[207-208]`
+- au=1.9947274267906323e-06, eu=0.31404945254325867, au′=-0.0, eu′=0.04377879574894905
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[21.842105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 64 | 64 | 21.842105865478516 | "When my captors were but one day's march from their foul city of Bis the warriors of the city of Konto, through whose fertile valley we had journeyed by night, fell upon the slavers. |
+- GPT 引用1: span=[64, 68], relevant=0
+- GPT 引用2: span=[207, 208], relevant=0
+
+### 陈述 3
+- The Misty Ones capture and enslave people from the mainland to use as sacrifices or labor on their island.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+### 陈述 4
+- The priests of Uzdon enslave the female slaves and choose one each day for sacrifice to their god.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[161-162]`
+- au=0.6811336874961853, eu=0.19047614932060242, au′=0.6811329126358032, eu′=0.04494381323456764
+- top_logits 方差 (pvariance, 有限 logit): 0.35058822658265854
+- top_logits 数值: `[21.842105865478516, 20.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 200 | 200 | 21.842105865478516 | "All the young female slaves are caged together in the pit beneath the Skull. |
+| 2 | 161 | 161 | 20.657896041870117 | "That matters not to the priests of Uzdon," the slighter of the two slaves, his hair almost white, said. |
+
+**跨度** `[201-202]`
+- au=0.6811336874961853, eu=0.19047614932060242, au′=0.6811329126358032, eu′=0.04494381323456764
+- top_logits 方差 (pvariance, 有限 logit): 0.35058822658265854
+- top_logits 数值: `[21.842105865478516, 20.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 200 | 200 | 21.842105865478516 | "All the young female slaves are caged together in the pit beneath the Skull. |
+| 2 | 161 | 161 | 20.657896041870117 | "That matters not to the priests of Uzdon," the slighter of the two slaves, his hair almost white, said. |
+
+**跨度** `[204-204]`
+- au=0.6811336874961853, eu=0.19047614932060242, au′=0.6811329126358032, eu′=0.04494381323456764
+- top_logits 方差 (pvariance, 有限 logit): 0.35058822658265854
+- top_logits 数值: `[21.842105865478516, 20.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 200 | 200 | 21.842105865478516 | "All the young female slaves are caged together in the pit beneath the Skull. |
+| 2 | 161 | 161 | 20.657896041870117 | "That matters not to the priests of Uzdon," the slighter of the two slaves, his hair almost white, said. |
+- GPT 引用1: span=[161, 162], relevant=0
+- GPT 引用2: span=[201, 202], relevant=1
+- GPT 引用3: span=[204, 204], relevant=0
+
+### 陈述 5
+- The slave Rold is willing to help Noork rescue Sarna because he hopes to mate with her and take her back to his home city of Konto.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[195-196]`
+- au=1.083399772644043, eu=0.132635235786438, au′=1.0833991765975952, eu′=0.043863020837306976
+- top_logits 方差 (pvariance, 有限 logit): 0.07309969405711551
+- top_logits 数值: `[22.10526466369629, 21.842105865478516, 21.447368621826172]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 195 | 195 | 22.10526466369629 | And the girl from the enemy city of Grath was beautiful. |
+| 2 | 193 | 193 | 21.842105865478516 | He had been born on the island and yet his people were from the valley city of Konto. |
+| 3 | 194 | 194 | 21.447368621826172 | He knew that they would welcome the news that the Misty Ones were not demons. |
+
+**跨度** `[197-197]`
+- au=1.083399772644043, eu=0.132635235786438, au′=1.0833991765975952, eu′=0.043863020837306976
+- top_logits 方差 (pvariance, 有限 logit): 0.07309969405711551
+- top_logits 数值: `[22.10526466369629, 21.842105865478516, 21.447368621826172]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 195 | 195 | 22.10526466369629 | And the girl from the enemy city of Grath was beautiful. |
+| 2 | 193 | 193 | 21.842105865478516 | He had been born on the island and yet his people were from the valley city of Konto. |
+| 3 | 194 | 194 | 21.447368621826172 | He knew that they would welcome the news that the Misty Ones were not demons. |
+- GPT 引用1: span=[195, 197], relevant=1
+
+### 陈述 6
+So in summary, enslavement is a major part of the social and political structure of Sekk, with both the valley cities and the jungle tribes engaging in it. It drives much of the conflict and character motivations in the story.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+## squality_test_idx4 (idx=4, squality_test)
+### 问题
+What is the significance of the Misty Ones in the story?
+
+### 参考答案（数据集）
+- ref1: The Misty Ones are a group of highly feared beings, thought to be supernatural in some way at the beginning of the story because of their ability to remain unseen.  Noork, however, is able to catch a glimpse of the bottom of one of their feet from his vantage point high in a tree and begins to pelt the area where he believes they are with fruit.  After this, he can see their outlines and that they are wearing robes with hoods, and he ceases to be afraid and attacks with arrows, killing one of the Misty Ones.  He disrobes this man, who is described as heavily scarred on his face, having a low forehead, with more hair on his body and less golden skin than other men of Zuran.  Once Noork is sure that the Misty Ones are not supernatural, he decides to pursue them in an attempt to rescue Sarna,…
+- ref2: The Misty Ones are significant for several reasons. They are creatures that come from the island in the lake of Uzdon, and they look like mist and are therefore nearly invisible to most (other than the priests). They are thought to be demons and perhaps invincible, but Noork discovers otherwise when he gets close enough to see that they look like him. He passes a message along to Gurn that they can be trapped and skinned. Noork’s discovery of this allows him to rescue Sarna and allows Gurn and the other warriors to rescue them from Doctor Von Mark.
+- ref3: The Misty Ones are mysterious beings who are invisible and cause problems for others. With so little is known about them other than their devious acts, they are considered demons. They live on an island in the Lake of Uzdon and have a giant skull known as the Temple of the Skull that represents their god, Uzdon, to whom they over living female sacrifices. The Misty Ones wear cloaks that make them invisible, and until Noork shoots and kills one with an arrow, no one knows that they are flesh and bone beings underneath their robes. Noork discovers they look very much like he does but with a low, sloping forehead and more body hair. When the Misty Ones kidnap Tholon, Noork notices he can see a foot of one of them because it was covered with mud. He throws overripe fruit at the group, and the …
+- ref4: The Misty Ones are a group of people who mostly dwell on the island of Manak. They control a group of slaves on the island and manage the sacrificial rituals for the gods they worship, Uzdon and Lornu. To complete these sacrifices, they habitually capture and imprison young women from around the land of Zura, and they choose the youngest and most beautiful to sacrifice. The Misty Ones inspire fear in the hearts of the Vasads and other peoples of Zura due to their mysterious nature and their ability to move about invisibly. However, their weakness is revealed when Noork discovers they are not completely invisible after all, and their “skin” (an invisibility robe) can be easily removed. Noork has his friend Ud pass this message along to Gurn and his Vasads to encourage them to no longer fear…
+
+### 模型全文输出
+```
+<statement>The Misty Ones play a significant role in the story as the unseen guardians of the Temple of Uzdon and as the enemies of Noork and his allies.<cite></cite></statement>
+
+<statement>Here are some key points about the Misty Ones:<cite></cite></statement>
+
+<statement>- They are described as hooded and robed figures with arms and legs like humans.<cite>[91-91]</cite></statement>
+
+<statement>- They are not invisible, but blend in with the jungle foliage and can be difficult to see.<cite>[84-84][91-91]</cite></statement>
+
+<statement>- They are mortal and can be killed, unlike the supernatural beings Noork had been taught to fear.<cite>[91-91][92-92][93-93]</cite></statement>
+
+<statement>- They are described as cowardly and prey on their own kind.<cite>[107-107]</cite></statement>
+
+<statement>- They guard the Temple of Uzdon and are feared by the people.<cite>[220-220]</cite></statement>
+
+<statement>- Noork discovers they are not demons or gods, but men, and kills several of them.<cite>[91-91][94-94][98-98]</cite></statement>
+
+<statement>- Their skins are valuable and are used by the people for clothing.<cite></cite></statement>
+
+<statement>- The Misty Ones are connected to the island in the Lake of Uzdon and the Temple of the Skull.<cite>[107-107]</cite></statement>
+
+<statement>- They are enemies of Noork and his allies, and are killed or driven off.<cite>[91-95][106-107][371-374]</cite></statement>
+
+<statement>So in summary, the Misty Ones are mortal but feared beings who guard the Temple of Uzdon and are enemies of Noork and his allies. Their skins are valuable. They are connected to the island and temple and are killed or driven off.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 399], 共 399 句。
+引用指标: R=0.4583333333333333, P=0.6153846153846154, F1=0.5253731343283582
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=8641, completion_tokens=199
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The Misty Ones play a significant role in the story as the unseen guardians of the Temple of Uzdon and as the enemies of Noork and his allies.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+### 陈述 1
+Here are some key points about the Misty Ones:
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 2
+- They are described as hooded and robed figures with arms and legs like humans.
+- GPT support_score=1; **Rating**: [[Fully supported]]   **
+
+**跨度** `[91-91]`
+- au=0.6806235313415527, eu=0.18999993801116943, au′=0.6806226968765259, eu′=0.04481131583452225
+- top_logits 方差 (pvariance, 有限 logit): 0.8483385049075878
+- top_logits 数值: `[22.23684310913086, 20.394737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 22.23684310913086 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 2 | 90 | 90 | 20.394737243652344 | Patchy outlines took on a new color and sharpness. |
+- GPT 引用1: span=[91, 91], relevant=1
+
+### 陈述 3
+- They are not invisible, but blend in with the jungle foliage and can be difficult to see.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[84-84]`
+- au=0.6823925375938416, eu=0.17840370535850525, au′=0.6823915243148804, eu′=0.041621025651693344
+- top_logits 方差 (pvariance, 有限 logit): 0.0173131382698557
+- top_logits 数值: `[23.157896041870117, 22.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 81 | 81 | 23.157896041870117 | And then he caught a glimpse of blurring shadowy shapes, blotches of cottony mist that blended all too well with the foliage. |
+| 2 | 84 | 84 | 22.894737243652344 | So the Misty Ones were not entirely invisible. |
+
+**跨度** `[91-91]`
+- au=0.6823925375938416, eu=0.17840370535850525, au′=0.6823915243148804, eu′=0.041621025651693344
+- top_logits 方差 (pvariance, 有限 logit): 0.0173131382698557
+- top_logits 数值: `[23.157896041870117, 22.894737243652344]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 81 | 81 | 23.157896041870117 | And then he caught a glimpse of blurring shadowy shapes, blotches of cottony mist that blended all too well with the foliage. |
+| 2 | 84 | 84 | 22.894737243652344 | So the Misty Ones were not entirely invisible. |
+- GPT 引用1: span=[84, 84], relevant=1
+- GPT 引用2: span=[91, 91], relevant=0
+
+### 陈述 4
+- They are mortal and can be killed, unlike the supernatural beings Noork had been taught to fear.
+- GPT support_score=1; **Rating**: [[Fully supported]]   **
+
+**跨度** `[91-91]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+
+**跨度** `[92-92]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+
+**跨度** `[93-93]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+- GPT 引用1: span=[91, 93], relevant=1
+
+### 陈述 5
+- They are described as cowardly and prey on their own kind.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[107-107]`
+- au=0.6826463341712952, eu=0.175115168094635, au′=0.682645320892334, eu′=0.04072882607579231
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.55263328552246, 23.55263328552246]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 107 | 107 | 23.55263328552246 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 2 | 106 | 106 | 23.55263328552246 | "So," said Noork, "the men of the island prey upon their own kind. |
+- GPT 引用1: span=[107, 107], relevant=0
+
+### 陈述 6
+- They guard the Temple of Uzdon and are feared by the people.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[220-220]`
+- au=1.3672608137130737, eu=0.11014490574598312, au′=1.3672600984573364, eu′=0.04717566445469856
+- top_logits 方差 (pvariance, 有限 logit): 0.5410318064230069
+- top_logits 数值: `[21.3157901763916, 20.394737243652344, 19.60526466369629, 19.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 107 | 107 | 21.3157901763916 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 2 | 106 | 106 | 20.394737243652344 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 3 | 220 | 220 | 19.60526466369629 | Other misty blobs, the invisible guards of the ghastly temple, were stationed at regular intervals across the great entrance into the Skull's interior, but they paid Noork no heed. |
+| 4 | 67 | 67 | 19.473684310913086 | And the Misty Ones from the Temple of the Skull trailed us. |
+- GPT 引用1: span=[220, 220], relevant=1
+
+### 陈述 7
+- Noork discovers they are not demons or gods, but men, and kills several of them.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[91-91]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+
+**跨度** `[94-94]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+
+**跨度** `[98-98]`
+- au=1.9067709899900365e-06, eu=0.29687488079071045, au′=-0.0, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.68421173095703]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 91 | 91 | 23.68421173095703 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+- GPT 引用1: span=[91, 91], relevant=1
+- GPT 引用2: span=[94, 94], relevant=1
+- GPT 引用3: span=[98, 98], relevant=0
+
+### 陈述 8
+- Their skins are valuable and are used by the people for clothing.
+- GPT support_score=0; [[Yes]]   Need Citation: [[Yes]]
+
+### 陈述 9
+- The Misty Ones are connected to the island in the Lake of Uzdon and the Temple of the Skull.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[107-107]`
+- au=1.3677105903625488, eu=0.10998550802469254, au′=1.367709994316101, eu′=0.04710257053375244
+- top_logits 方差 (pvariance, 有限 logit): 0.1936893697591131
+- top_logits 数值: `[20.526315689086914, 20.526315689086914, 20.394737243652344, 19.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 106 | 106 | 20.526315689086914 | "So," said Noork, "the men of the island prey upon their own kind. |
+| 2 | 71 | 71 | 20.526315689086914 | "Some day," he said reflectively, "I am going to visit the island of the unseen evil beings who stole away your friends. |
+| 3 | 107 | 107 | 20.394737243652344 | And the Temple of Uzdon in the lake is guarded by cowardly warriors like this." |
+| 4 | 67 | 67 | 19.473684310913086 | And the Misty Ones from the Temple of the Skull trailed us. |
+- GPT 引用1: span=[107, 107], relevant=0
+
+### 陈述 10
+- They are enemies of Noork and his allies, and are killed or driven off.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[91-95]`
+- au=1.0822539329528809, eu=0.1384335160255432, au′=1.0822534561157227, eu′=0.04598627984523773
+- top_logits 方差 (pvariance, 有限 logit): 0.39627570965078324
+- top_logits 数值: `[21.3157901763916, 21.052631378173828, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 21.3157901763916 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 91 | 91 | 21.052631378173828 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 3 | 88 | 88 | 19.86842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+
+**跨度** `[106-107]`
+- au=1.0822539329528809, eu=0.1384335160255432, au′=1.0822534561157227, eu′=0.04598627984523773
+- top_logits 方差 (pvariance, 有限 logit): 0.39627570965078324
+- top_logits 数值: `[21.3157901763916, 21.052631378173828, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 21.3157901763916 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 91 | 91 | 21.052631378173828 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 3 | 88 | 88 | 19.86842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+
+**跨度** `[371-374]`
+- au=1.0822539329528809, eu=0.1384335160255432, au′=1.0822534561157227, eu′=0.04598627984523773
+- top_logits 方差 (pvariance, 有限 logit): 0.39627570965078324
+- top_logits 数值: `[21.3157901763916, 21.052631378173828, 19.86842155456543]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 94 | 94 | 21.3157901763916 | He strung his bow quickly, the short powerful bow that Gurn had given him, and rained arrows down upon the cowering robed creatures. |
+| 2 | 91 | 91 | 21.052631378173828 | Noork found that he was pelting a half-dozen hooded and robed creatures whose arms and legs numbered the same as his own, and the last remnant of superstitious fear instilled in his bruised brain by the shaggy Vasads vanished. |
+| 3 | 88 | 88 | 19.86842155456543 | A barrage of the juicy fruit blanketed the misty shapes. |
+- GPT 引用1: span=[91, 95], relevant=1
+- GPT 引用2: span=[106, 107], relevant=0
+- GPT 引用3: span=[371, 374], relevant=1
+
+### 陈述 11
+So in summary, the Misty Ones are mortal but feared beings who guard the Temple of Uzdon and are enemies of Noork and his allies. Their skins are valuable. They are connected to the island and temple and are killed or driven off.
+- GPT support_score=0; [[Yes]]  Need Citation: [[Yes]] Analysis
+
+## squality_test_idx5 (idx=5, squality_test)
+### 问题
+What is the plot of the story?
+
+### 参考答案（数据集）
+- ref1: John Willard and Larry Dobbin are astronauts who have been in space for four years on the rocket Mary Lou, and as Dobbin is dying, he regrets that he will not see Earth again. Willard assures him that they will make it back, but he knows that they will never make it back because their ship was damaged by a meteor. Although the ship can still carry out functions to support life, it is not navigable. After Willard helps Dobbin look at the stars one more time, Dobbin cries out that it’s true—when an astronaut is dying, the Ghost Ship comes for him.   Willard recycles Dobbin’s body but feels regretful about it. He longs to see the Earth again and walk on it, but he knows this will never happen and feels intensely lonely. After two years, a strange thing happens. Willard is looking at the stars…
+- ref2: Galactic Ghost begins with death. John Willard is taking care of his co-pilot and best friend, Larry Dobbin as he dies. A meteor struck their rocket ship, the Mary Lou, and damaged both her and Dobbin. As Dobbin dies, Willard gently takes care of him and lifts him up to the port so he can see the stars one last time. Just before he passes, Dobbin cries out and says he saw the infamous ghost ship. It steals dying spacemen who have no hope of returning to Earth, cursing them to spend the rest of their lives as ghosts in space.  After Dobbin passes, Willard watches over him for two days before removing his body and turning it into energy for the useless engine in the Mary Lou. Although the ship is livable, it is not flyable. Taking careful diligence to check every part of the ship, Willard ma…
+- ref3: John Willard's and Larry Dobbin's ship the "Mary Lou" had been damaged by a meteor during its mission to explore a small planet beyond Pluto, and Willard and Dobbin are waiting to die in space. Eventually, Dobbin dies, and he claims to see the fabled "Ghost Ship" seconds before his passing. After Dobbin's death, Willard manages to stay alive thanks to the machines that could convert waste into food and air. Willard spends two years alone, lost in hopeless thought and agony. Eventually, he sees a blinking shape in the distance, which he soon determines is an old-fashioned rocket ship. However, his instruments indicate there is no ship despite what he sees. Willard oscillates between doubting his own vision and believing there must be a scientific explanation for it. As he struggles with the…
+- ref4: John Willard and Larry Dobbin are the lone space explorers aboard the Mary Lou, a ship that can’t move due to meteor damage. As the story begins, WIllard tries to comfort Dobbin as Dobbin dies. Before passing away, Dobbin sees what he believes to be “The Ghost Ship”, a fabled ship that comes for dying spacemen. Willard believes Ghost Ships are just fairy tales and that Dobbin was delirious.   Two years later, Willard sees what looks like a partially invisible rocket ship, though his ship’s control board shows no sign of anything. As the ship turns away and disappears, Willard wonders if he imagined it or if it could be The Ghost Ship, but decides that is impossible.   Seven more years go by, and we read a small article from Willard and Dobbin’s hometown newspaper (that we are told Willard …
+
+### 模型全文输出
+```
+<statement>The plot of "Galactic Ghost" by Walter Kubilius is about a lone space traveler named Willard who is the last survivor of a space ship called the Mary Lou. He has been in space for years, ever since his ship was damaged and he was forced to abandon his mission. During this time, he becomes increasingly lonely and isolated, and begins to hallucinate about a ghost ship that haunts him. Eventually, a real Earth ship rescues him and brings him back to Earth, but he discovers that he is now a ghost himself, along with everyone else on the Earth ship, due to the effects of time and space travel. The story explores themes of loneliness, isolation, and the psychological effects of long-term space travel on the human mind.<cite>[1-1][7-7][59-59]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 317], 共 317 句。
+引用指标: R=0.0, P=0.0, F1=0.0
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1612, completion_tokens=31
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The plot of "Galactic Ghost" by Walter Kubilius is about a lone space traveler named Willard who is the last survivor of a space ship called the Mary Lou. He has been in space for years, ever since his ship was damaged and he was forced to abandon his mission. During this time, he becomes increasingly lonely and isolated, and begins to hallucinate about a ghost ship that haunts him. Eventually, a real Earth ship rescues him and brings him back to Earth, but he discovers that he is now a ghost himself, along with everyone else on the Earth ship, due to the effects of time and space travel. The story explores themes of loneliness, isolation, and the psychological effects of long-term space travel on the human mind.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[1-1]`
+- au=1.9009210063813953e-06, eu=0.2957197427749634, au′=-0.0, eu′=0.04029691964387894
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.8157901763916]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 23.8157901763916 | GALACTIC GHOST   By WALTER KUBILIUS   The Flying Dutchman of space was a harbinger of death. |
+
+**跨度** `[7-7]`
+- au=0.6824571490287781, eu=0.17431187629699707, au′=0.682456374168396, eu′=0.04051172360777855
+- top_logits 方差 (pvariance, 有限 logit): 0.2770082045790332
+- top_logits 数值: `[24.210527420043945, 23.157896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 3 | 3 | 24.210527420043945 | He had seen the phantom—and lived. |
+| 2 | 7 | 7 | 23.157896041870117 | The only friend in space Willard had ever known was dying. |
+
+**跨度** `[59-59]`
+- au=1.9009210063813953e-06, eu=0.2957197427749634, au′=-0.0, eu′=0.04029691964387894
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.8157901763916]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 1 | 1 | 23.8157901763916 | GALACTIC GHOST   By WALTER KUBILIUS   The Flying Dutchman of space was a harbinger of death. |
+- GPT 引用1: span=[1, 1], relevant=0
+- GPT 引用2: span=[7, 7], relevant=0
+- GPT 引用3: span=[59, 59], relevant=0
+
+## squality_test_idx6 (idx=6, squality_test)
+### 问题
+What is the significance of memories in the story?
+
+### 参考答案（数据集）
+- ref1: Both Dobbin and Willard have memories of Earth that sadden them and make them lonely. As Dobbin is dying, he remembers his life on Earth, and his greatest regret is that he will never see it again. Dobbin is satisfied with his life and experiences, but his Earth-loneliness prevents him from dying a happy man. Willard is also pained by his memories of Earth and what he has lost and will never have again. Alone in space, Willard considers his memories the only things of value to him. Because his memories cause him so much pain, Willard tries to ignore them or remove them, but they return in his dreams. His memories in his dreams are full of sensory details and other details that he did not notice when he was on Earth. However, when Willard is drugged and sleeping on the Ghost Ship, his dream…
+- ref2: Memories are both joys for Willard as well as his greatest anguish. The memories of his time on Earth, the sound of his friend’s voices, the feel of the ground beneath his feet, and even the sounds of the buildings and the city torture him since it gives him something to hope for.  He is not able to let go of his life because he longs to survive and live out the rest of his days on Earth. He spends almost 20 years alone while in space, holding on to his memories to keep him going. Unlike Dobbin, memories became Willard’s constant companion and the only thing that lasted with him throughout his time aboard the Mary Lou.  In the end, though, his memories basically haunted and tormented him. He would push them away, only to dream of them at night. His memories broke him and, without anyone be…
+- ref3: Memories function as a link to reality for Willard. The more he struggles to stay sane during his long periods of isolation, the more he relies on his vivid memories of Earth—walking along the streets of Arden, hearing the voices of his co-workers and scientists he used to know, the voices of his friends and wife–to keep him alive. Even as the “Mary Lou” slowly begins to lose its energy and shape and become a “ghost ship”, Willard is not aware that this process is even happening because his memories keep him grounded in a kind of reality. In this reality, his memories keep Willard alive because Willard believes he is alive and that a real ship has come to save him. The idea of returning to Earth and seeing those memories come to life again keeps Willard going for all those decades.
+- ref4: Memories are very significant in the story, because they both sustain Willard’s will to keep going and torment him when he is at his lowest points. He dreams of his Earth days at night and longs to hear the voices of his friends, family, and coworkers, and to see Earth again. When he is rescued by The Ghost Ship, he tells the Captain that the idea of seeing Earth is all that has kept him going. His Earth memories have also made him feel even lonelier as he has floated through space, and now on The Ghost Ship his memories of being stranded on the Mary Lou haunt him in his nightmares. His memories have alternately been a struggle and a lifeline, but are ultimately what have kept him connected to his humanity.
+
+### 模型全文输出
+```
+<statement>Memories play a significant role in the story "Galactic Ghost" by Walter Kubilius.<cite></cite></statement>
+
+<statement>- Memories are a source of comfort and solace for Willard, the lone survivor of the Mary Lou. He frequently thinks back to his time on Earth and the memories help him cope with the loneliness and isolation of being in space for so long.<cite>[140-140][143-143][144-150]</cite></statement>
+
+<statement>- Memories also serve as a contrast to Willard's current situation. He remembers the warmth and companionship of Earth, while in reality he is alone and adrift in space.<cite>[140-140][144-150][153-153]</cite></statement>
+
+<statement>- The legend of the Ghost Ship is based on memories and oral tradition. It is a story told to pass the time and explain the unexplained phenomenon of the Ghost Ship.<cite>[163-166][167-167]</cite></statement>
+
+<statement>- Memories also play a role in Willard's realization that he is not alone. He dreams of Earth and sees his wife and friends, indicating that memories can be more real than reality itself.<cite>[143-152][154-154][156-156]</cite></statement>
+
+<statement>- Finally, memories are a source of hope and motivation for Willard. He remembers that he will see Earth again and this drives him to keep going and survive in his isolated situation.<cite>[262-262][264-264][268-268]</cite></statement>
+
+<statement>In summary, memories are a vital part of the story, providing comfort, contrast, explanation, realization, and hope for Willard as he struggles to survive in space.<cite></cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 317], 共 317 句。
+引用指标: R=0.7857142857142857, P=0.75, F1=0.7674418604651163
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=6864, completion_tokens=143
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Memories play a significant role in the story "Galactic Ghost" by Walter Kubilius.
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+### 陈述 1
+- Memories are a source of comfort and solace for Willard, the lone survivor of the Mary Lou. He frequently thinks back to his time on Earth and the memories help him cope with the loneliness and isolation of being in space for so long.
+- GPT support_score=1; **Rating: [[Fully supported]]**   **
+
+**跨度** `[140-140]`
+- au=1.6802155187178869e-06, eu=0.2992125153541565, au′=-0.0, eu′=0.04094827175140381
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.421052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 23.421052932739258 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[143-143]`
+- au=1.6802155187178869e-06, eu=0.2992125153541565, au′=-0.0, eu′=0.04094827175140381
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.421052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 23.421052932739258 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[144-150]`
+- au=1.6802155187178869e-06, eu=0.2992125153541565, au′=-0.0, eu′=0.04094827175140381
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[23.421052932739258]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 23.421052932739258 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+- GPT 引用1: span=[140, 140], relevant=1
+- GPT 引用2: span=[143, 150], relevant=1
+
+### 陈述 2
+- Memories also serve as a contrast to Willard's current situation. He remembers the warmth and companionship of Earth, while in reality he is alone and adrift in space.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[140-140]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 24.473684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[144-150]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 24.473684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[153-153]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 24.473684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+- GPT 引用1: span=[140, 140], relevant=1
+- GPT 引用2: span=[144, 150], relevant=1
+- GPT 引用3: span=[153, 153], relevant=0
+
+### 陈述 3
+- The legend of the Ghost Ship is based on memories and oral tradition. It is a story told to pass the time and explain the unexplained phenomenon of the Ghost Ship.
+- GPT support_score=0.5; **Rating: [[Partially supported]]**
+
+**跨度** `[163-166]`
+- au=1.082637071609497, eu=0.13693693280220032, au′=1.0826363563537598, eu′=0.04543642699718475
+- top_logits 方差 (pvariance, 有限 logit): 0.24622951518136282
+- top_logits 数值: `[21.710527420043945, 20.657896041870117, 20.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 163 | 163 | 21.710527420043945 | A chance phrase here and a story there put together all that he knew:  Doomed for all eternity to wander in the empty star-lanes, the Ghost Ship haunts the Solar System that gave it birth. |
+| 2 | 167 | 167 | 20.657896041870117 | Merely a tale of some fairy ship told to amuse and to while away the days of a star-voyage. |
+| 3 | 162 | 162 | 20.657896041870117 | Grimly he retraced the legend of the Ghost Ship. |
+
+**跨度** `[167-167]`
+- au=1.082637071609497, eu=0.13693693280220032, au′=1.0826363563537598, eu′=0.04543642699718475
+- top_logits 方差 (pvariance, 有限 logit): 0.24622951518136282
+- top_logits 数值: `[21.710527420043945, 20.657896041870117, 20.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 163 | 163 | 21.710527420043945 | A chance phrase here and a story there put together all that he knew:  Doomed for all eternity to wander in the empty star-lanes, the Ghost Ship haunts the Solar System that gave it birth. |
+| 2 | 167 | 167 | 20.657896041870117 | Merely a tale of some fairy ship told to amuse and to while away the days of a star-voyage. |
+| 3 | 162 | 162 | 20.657896041870117 | Grimly he retraced the legend of the Ghost Ship. |
+- GPT 引用1: span=[163, 167], relevant=1
+
+### 陈述 4
+- Memories also play a role in Willard's realization that he is not alone. He dreams of Earth and sees his wife and friends, indicating that memories can be more real than reality itself.
+- GPT support_score=0.5; **Rating: [[Partially supported]]**
+
+**跨度** `[143-152]`
+- au=0.6820859313011169, eu=0.18138420581817627, au′=0.6820850372314453, eu′=0.042434390634298325
+- top_logits 方差 (pvariance, 有限 logit): 0.10820617305944324
+- top_logits 数值: `[22.894737243652344, 22.23684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 22.894737243652344 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+| 2 | 140 | 140 | 22.23684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[154-154]`
+- au=0.6820859313011169, eu=0.18138420581817627, au′=0.6820850372314453, eu′=0.042434390634298325
+- top_logits 方差 (pvariance, 有限 logit): 0.10820617305944324
+- top_logits 数值: `[22.894737243652344, 22.23684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 22.894737243652344 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+| 2 | 140 | 140 | 22.23684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+
+**跨度** `[156-156]`
+- au=0.6820859313011169, eu=0.18138420581817627, au′=0.6820850372314453, eu′=0.042434390634298325
+- top_logits 方差 (pvariance, 有限 logit): 0.10820617305944324
+- top_logits 数值: `[22.894737243652344, 22.23684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 143 | 143 | 22.894737243652344 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+| 2 | 140 | 140 | 22.23684310913086 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+- GPT 引用1: span=[143, 152], relevant=1
+- GPT 引用2: span=[154, 154], relevant=0
+- GPT 引用3: span=[156, 156], relevant=0
+
+### 陈述 5
+- Finally, memories are a source of hope and motivation for Willard. He remembers that he will see Earth again and this drives him to keep going and survive in his isolated situation.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[262-262]`
+- au=1.0833693742752075, eu=0.13333331048488617, au′=1.0833690166473389, eu′=0.04411764070391655
+- top_logits 方差 (pvariance, 有限 logit): 0.015389233158202842
+- top_logits 数值: `[21.842105865478516, 21.578948974609375, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 21.842105865478516 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+| 2 | 262 | 262 | 21.578948974609375 | He would see Earth again! |
+| 3 | 143 | 143 | 21.578948974609375 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+
+**跨度** `[264-264]`
+- au=1.0833693742752075, eu=0.13333331048488617, au′=1.0833690166473389, eu′=0.04411764070391655
+- top_logits 方差 (pvariance, 有限 logit): 0.015389233158202842
+- top_logits 数值: `[21.842105865478516, 21.578948974609375, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 21.842105865478516 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+| 2 | 262 | 262 | 21.578948974609375 | He would see Earth again! |
+| 3 | 143 | 143 | 21.578948974609375 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+
+**跨度** `[268-268]`
+- au=1.0833693742752075, eu=0.13333331048488617, au′=1.0833690166473389, eu′=0.04411764070391655
+- top_logits 方差 (pvariance, 有限 logit): 0.015389233158202842
+- top_logits 数值: `[21.842105865478516, 21.578948974609375, 21.578948974609375]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 140 | 140 | 21.842105865478516 | A man who is alone in space with nothing but the cold friendship of star-light looks back upon memories as the only things both dear and precious to him. |
+| 2 | 262 | 262 | 21.578948974609375 | He would see Earth again! |
+| 3 | 143 | 143 | 21.578948974609375 | And so it was that each night—for Willard did not give up the Earth-habit of keeping time—Willard dreamed of the days he had known on Earth. |
+- GPT 引用1: span=[262, 262], relevant=1
+- GPT 引用2: span=[264, 264], relevant=1
+- GPT 引用3: span=[268, 268], relevant=1
+
+### 陈述 6
+In summary, memories are a vital part of the story, providing comfort, contrast, explanation, realization, and hope for Willard as he struggles to survive in space.
+- GPT support_score=1; [[No]]   Need Citation: [[No]]
+
+## squality_test_idx7 (idx=7, squality_test)
+### 问题
+Who is Larry Dobbin, and what happens to him?
+
+### 参考答案（数据集）
+- ref1: John Willard considers Larry Dobbin his best friend. They are both astronauts in a rocket ship that was on a voyage past Pluto to explore a possible planetoid. Their ship was struck by a meteor and can no longer fly, so they are drifting through space. When the story opens, Dobbin is dying. His breathing is erratic, and his fingertips are black. Dobbin has accepted his impending death, but Willard tries to convince Dobbin that he is not dying and that they will return to Earth. Dobbin longs to return to Earth and regrets that he will not see it again. He remembers his first space flight as Willard raises him to look out the port window at the stars. Before he dies, Dobbin declares that the Ghost Ship has come for him. He points to it out the window, but Willard does not see it. Willard bel…
+- ref2: Larry Dobbin is John Willard’s right-hand man abroad the space ship Mary Lou. They blasted off from Rocket Port nine years before the beginning of the story. They went to space to explore the possibility of another planetoid hidden beyond Pluto.  Larry Dobbin, as Willard’s companion and confidante, operated the Mary Lou from the control board, possibly co-piloting with Willard.  However, less than five years into their adventure, the Mary Lou was struck by a meteor, which damaged the Mary Lou to no repair but only in certain areas. The meteor did not damage the assimilators and convertors, which meant the ship was livable, but not moveable. However, assumedly during the meteor strike, Dobbin was severely injured. At the beginning of the story, he is dying and sees a ship far in the distanc…
+- ref3: Larry Dobbin is Willard’s closest friend and fellow explorer who joins Willard on the “Mary Lou.” Their mission is to journey to a small planet that lies beyond Pluto. At some point in their expedition, a meteor hits their ship and damages it, causing the “Mary Lou” to drift through unknown space, unable to return to Earth. Dobbin becomes sick during this period, and Willard realizes he is going to die. Dobbin hopes to return to Earth prior to his death, and Willard entertains this fantasy in order to give him some hope and peace before his passing. Dobbin remembers his first journey into space, and as he peers out into the abyss towards the end of his life, he exclaims that he sees the Ghost Ship—a legend amongst sailors and spacemen who claim people see such a ship in the moments before …
+- ref4: Larry Dobbin (called “Harry Dobbin” by Willard) is the other space explorer on the Mary Lou with Willard. They embarked on a voyage to explore a planetoid beyond Pluto, and were never heard from on Earth again. As the story begins, they are four years into the mission and Dobbin is dying of an unspecified illness that has turned his finger tips black and made it difficult for him to breathe or speak. Willard lifts him to the window of the ship so he can see the stars one last time, and Dobbin says he sees The Ghost Ship and that it has come for him because he is dying. Willard assures him that isn’t the case as Dobbin passes away. Willard keeps vigil over Dobbin’s remains for two days before disposing of them in the ship’s engine.
+
+### 模型全文输出
+```
+<statement>Based on the story, Larry Dobbin is the co-pilot and friend of John Willard on the space ship Mary Lou.<cite>[7-7]</cite></statement>
+
+<statement>Dobbin becomes ill and dies on the ship, with Willard being the sole survivor.<cite>[7-11][16-16][30-30]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 317], 共 317 句。
+引用指标: R=0.25, P=0.25, F1=0.25
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1770, completion_tokens=47
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, Larry Dobbin is the co-pilot and friend of John Willard on the space ship Mary Lou.
+- GPT support_score=0; Rating: [[No support]]
+
+**跨度** `[7-7]`
+- au=1.6340368347300682e-06, eu=0.29007625579833984, au′=-0.0, eu′=0.03925619646906853
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[24.473684310913086]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 24.473684310913086 | The only friend in space Willard had ever known was dying. |
+- GPT 引用1: span=[7, 7], relevant=0
+
+### 陈述 1
+Dobbin becomes ill and dies on the ship, with Willard being the sole survivor.
+- GPT support_score=0.5; **Rating**: [[Partially supported]]
+
+**跨度** `[7-11]`
+- au=1.5858721553740907e-06, eu=0.2804427146911621, au′=-0.0, eu′=0.03751233592629433
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[25.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 25.657896041870117 | The only friend in space Willard had ever known was dying. |
+
+**跨度** `[16-16]`
+- au=1.5858721553740907e-06, eu=0.2804427146911621, au′=-0.0, eu′=0.03751233592629433
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[25.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 25.657896041870117 | The only friend in space Willard had ever known was dying. |
+
+**跨度** `[30-30]`
+- au=1.5858721553740907e-06, eu=0.2804427146911621, au′=-0.0, eu′=0.03751233592629433
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[25.657896041870117]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 25.657896041870117 | The only friend in space Willard had ever known was dying. |
+- GPT 引用1: span=[7, 11], relevant=1
+- GPT 引用2: span=[16, 16], relevant=0
+- GPT 引用3: span=[30, 30], relevant=0
+
+## squality_test_idx8 (idx=8, squality_test)
+### 问题
+What is the significance of Ghost Ships in the story?
+
+### 参考答案（数据集）
+- ref1: There are legends and tall tales about the Ghost Ships, told mainly by drunken men and professional storytellers. Willard remembers that there are stories on Earth about Ghost Ships that sail the Seven Seas. The story goes that the crews of Ghost Ships have broken a particular law, and their punishment is to roam forever. The Ghost Ship in space is said to be the home of spacemen who could not return to Earth. When Dobbin is dying, he claims to see the Ghost Ship and that it has come for him, but when Willard looks for the ship, he does not see it. Later, when Willard sees the Ghost Ship for himself for the first time, he tries to convince himself it is not really there. He remembers the stories about oceangoing Ghost Ships and reasons that there could also be Ghost Ships in space. When th…
+- ref2: The Ghost Ship is a tale told by spacemen to frighten each other or warn them of this grave possibility. Many of those that came close to death in space, or those who witnessed others dying with no hope of a return to earth, mentioned seeing a ghost ship. A faint outline of a ship that had come to take them away forever. Before Dobbin’s death at the story of the story, he tells Willard that he sees the ghost ship.  This ghost ship serves as another form of torture for Willard during his many years of solitude. The ghost ship would essentially check up on him, float by and see if he was still alive or not. This gave Willard false hope as he would dream that the ghost ship was a real rocket ship that was coming to rescue him. In the end, Willard is taken away by a ghost ship, though he think…
+- ref3: The Ghost Ship is a legend that sailors and space travelers alike have claimed people see in the moments before they die at sea or in space. In the seconds before Dobbin dies in Willard’s arms, he looks out the window of the “Mary Lou” and claims to see the Ghost Ship himself. Throughout Willard’s long periods of solitude aboard the “Mary Lou”, he thinks he sees the Ghost Ship several times. First, from a distance, as a blinking light advancing closer and closer before turning back and sailing off into dark space; later, he thinks he sees the ship return, only this time it passes nearer before turning back and leaving again. With each return of the Ghost Ship, Willard believes he sees it clearer than he had before. After decades adrift in space, Willard believes a ship has finally come to …
+- ref4: Ghost Ships frame the story and the idea of them haunts Willard on and off throughout it. At the beginning, when Dobbin exclaims that he sees a Ghost Ship prior to his death, Willard tells himself that it was a hallucination from somewhere deep in his dying friend’s subconscious, just the result of the memory of an old legend. However, the idea of a Ghost Ship never really leaves Willard’s mind throughout the rest of the story. When he sees a partially transparent rocket ship that turns away and disappears, he wonders if it could be a Ghost Ship but talks himself out of it. Later he wonders if it was a ghost ship that was “mocking him”. When he is rescued by a ship that looks more real, the thought still crosses his mind that it could be a Ghost Ship and he again shuts the idea down. Ultim…
+
+### 模型全文输出
+```
+<statement>The significance of Ghost Ships in the story is that they represent the fate of space travelers who are stranded and cannot return to Earth. The legend of the Ghost Ship says that when a space traveler's ship becomes a lifeless hulk with no fuel, the Ghost Ship will come for them and they will be doomed to roam the stars forever, unable to return home.<cite>[122-124][163-165]</cite></statement>
+
+<statement>The story introduces the concept of the Ghost Ship early on as Dobbin, Willard's friend, sees the Ghost Ship before he dies. Later, Willard himself sees the Ghost Ship several times and becomes convinced it is real. He wonders if it is the same Ghost Ship that Dobbin saw. The story leaves the nature of the Ghost Ship open to interpretation, but it is clearly a symbol of the isolation and hopelessness that can be experienced by space travelers who are stranded and cannot return home.<cite>[38-39][41-44][48-48]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 317], 共 317 句。
+引用指标: R=0.75, P=0.2, F1=0.31578947368421056
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=2601, completion_tokens=53
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+The significance of Ghost Ships in the story is that they represent the fate of space travelers who are stranded and cannot return to Earth. The legend of the Ghost Ship says that when a space traveler's ship becomes a lifeless hulk with no fuel, the Ghost Ship will come for them and they will be doomed to roam the stars forever, unable to return home.
+- GPT support_score=1; Rating: [[Fully supported]]
+
+**跨度** `[122-124]`
+- au=0.681466817855835, eu=0.19095472991466522, au′=0.681465744972229, eu′=0.04507710412144661
+- top_logits 方差 (pvariance, 有限 logit): 0.0173131382698557
+- top_logits 数值: `[21.3157901763916, 21.052631378173828]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 163 | 163 | 21.3157901763916 | A chance phrase here and a story there put together all that he knew:  Doomed for all eternity to wander in the empty star-lanes, the Ghost Ship haunts the Solar System that gave it birth. |
+| 2 | 122 | 122 | 21.052631378173828 | Throughout all Earth history there had been Ghost Ships sailing the Seven Seas—ships doomed to roam forever because their crew broke some unbreakable law. |
+
+**跨度** `[163-165]`
+- au=0.681466817855835, eu=0.19095472991466522, au′=0.681465744972229, eu′=0.04507710412144661
+- top_logits 方差 (pvariance, 有限 logit): 0.0173131382698557
+- top_logits 数值: `[21.3157901763916, 21.052631378173828]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 163 | 163 | 21.3157901763916 | A chance phrase here and a story there put together all that he knew:  Doomed for all eternity to wander in the empty star-lanes, the Ghost Ship haunts the Solar System that gave it birth. |
+| 2 | 122 | 122 | 21.052631378173828 | Throughout all Earth history there had been Ghost Ships sailing the Seven Seas—ships doomed to roam forever because their crew broke some unbreakable law. |
+- GPT 引用1: span=[122, 124], relevant=0
+- GPT 引用2: span=[163, 165], relevant=1
+
+### 陈述 1
+The story introduces the concept of the Ghost Ship early on as Dobbin, Willard's friend, sees the Ghost Ship before he dies. Later, Willard himself sees the Ghost Ship several times and becomes convinced it is real. He wonders if it is the same Ghost Ship that Dobbin saw. The story leaves the nature of the Ghost Ship open to interpretation, but it is clearly a symbol of the isolation and hopelessness that can be experienced by space travelers who are stranded and cannot return home.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[38-39]`
+- au=1.5912377834320068, eu=0.08137043565511703, au′=1.5912375450134277, eu′=0.042410708963871
+- top_logits 方差 (pvariance, 有限 logit): 0.6620505525797489
+- top_logits 数值: `[24.078948974609375, 22.763158798217773, 22.23684310913086, 21.973684310913086, 21.842105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 38 | 38 | 24.078948974609375 | "I saw it!" |
+| 2 | 7 | 7 | 22.763158798217773 | The only friend in space Willard had ever known was dying. |
+| 3 | 2 | 2 | 22.23684310913086 | But Willard wasn't superstitions. |
+| 4 | 32 | 32 | 21.973684310913086 | Dobbin motioned to him and, in answer to a last request, Willard lifted him so he faced the port window for a final look at the panorama of the stars. |
+| 5 | 1 | 1 | 21.842105865478516 | GALACTIC GHOST   By WALTER KUBILIUS   The Flying Dutchman of space was a harbinger of death. |
+
+**跨度** `[41-44]`
+- au=1.5912377834320068, eu=0.08137043565511703, au′=1.5912375450134277, eu′=0.042410708963871
+- top_logits 方差 (pvariance, 有限 logit): 0.6620505525797489
+- top_logits 数值: `[24.078948974609375, 22.763158798217773, 22.23684310913086, 21.973684310913086, 21.842105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 38 | 38 | 24.078948974609375 | "I saw it!" |
+| 2 | 7 | 7 | 22.763158798217773 | The only friend in space Willard had ever known was dying. |
+| 3 | 2 | 2 | 22.23684310913086 | But Willard wasn't superstitions. |
+| 4 | 32 | 32 | 21.973684310913086 | Dobbin motioned to him and, in answer to a last request, Willard lifted him so he faced the port window for a final look at the panorama of the stars. |
+| 5 | 1 | 1 | 21.842105865478516 | GALACTIC GHOST   By WALTER KUBILIUS   The Flying Dutchman of space was a harbinger of death. |
+
+**跨度** `[48-48]`
+- au=1.5912377834320068, eu=0.08137043565511703, au′=1.5912375450134277, eu′=0.042410708963871
+- top_logits 方差 (pvariance, 有限 logit): 0.6620505525797489
+- top_logits 数值: `[24.078948974609375, 22.763158798217773, 22.23684310913086, 21.973684310913086, 21.842105865478516]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 38 | 38 | 24.078948974609375 | "I saw it!" |
+| 2 | 7 | 7 | 22.763158798217773 | The only friend in space Willard had ever known was dying. |
+| 3 | 2 | 2 | 22.23684310913086 | But Willard wasn't superstitions. |
+| 4 | 32 | 32 | 21.973684310913086 | Dobbin motioned to him and, in answer to a last request, Willard lifted him so he faced the port window for a final look at the panorama of the stars. |
+| 5 | 1 | 1 | 21.842105865478516 | GALACTIC GHOST   By WALTER KUBILIUS   The Flying Dutchman of space was a harbinger of death. |
+- GPT 引用1: span=[38, 39], relevant=0
+- GPT 引用2: span=[41, 44], relevant=0
+- GPT 引用3: span=[48, 48], relevant=0
+
+## squality_test_idx9 (idx=9, squality_test)
+### 问题
+What is the relationship between Dobbin and Willard?
+
+### 参考答案（数据集）
+- ref1: Larry Dobbin and John Willard are astronauts together in space on a mission to explore a planetoid beyond Pluto. When a meteor damages their rocket, they both realize they will never return to Earth. Willard considers Dobbin the best friend he has ever had friend, and when Dobbin is dying, Willard tries to keep his spirits up by telling him that he has a new plan for a way for them to return to Earth. When Dobbin wants to see the stars one last time before he dies, Willard raises him so that he can see them out the port window. When Dobbins sees the Ghost Ship and says that it has come for him, Willard assures him that nothing is there. After Dobbin dies, Willard holds a wake for him for two days before he recycles Dobbin’s body because the ship can still break down waste and refuse to cre…
+- ref2: Dobbin and Willard are close friends, companions, and colleagues. As they co-pilot and run the Mary Lou together in outer space, their relationship continued to develop. Willard even said that Dobbin was his sole friend in space. Being the only two people on board the Mary Lou brought them closer together and helped their relationship evolve.  Although the reader does not see them together much, the effects of Dobbin on Willard are very evident and show how close the two of them were. Willard watched over his body for two Earth days before respectfully disposing of it. This dedication to his brethren shows how close the two of them became.
+- ref3: John Willard and Larry Dobbin are both spacemen piloting the “Mary Lou” on a mission to explore a small planet far away from Earth, past Pluto. Due to their isolation and sheer amount of time spent together, they become close friends. In fact, they are the only friends each other has ever had in outer space. Following the meteor strike that disables their ship, Willard understands Dobbin’s desire to return to Earth as well as the importance of having hope that such a return would one day be possible. Willard offers Dobbin support in his dying moments, holding him up so he can see out the window. This is when Dobbin sees the Ghost Ship right before passing away. Dobbin’s vision would influence Willard’s struggle between belief and disbelief throughout the remainder of his time in space.
+- ref4: Dobbin and Willard are the two space explorers aboard the Mary Lou, a ship bound to explore past Pluto. At the beginning of the story, Willard describes Dobbin as his only friend in space, and the best friend he ever had. The loss of Dobbin sends Willard into a spiral of loneliness and depression that lasts decades, as Dobbin was his only companion and connection to Earth. Dobbin only survives the first few paragraphs of the story, but he continues to have an influence on his colleague and friend. Dobbin believed he saw The Ghost Ship before he died, and the idea of that sticks with Willard throughout the rest of his journey aboard the Mary Lou and beyond, despite his skepticism.
+
+### 模型全文输出
+```
+<statement>Based on the story, Dobbin and Willard are friends and space mates. They have been on a mission together for four years and are the only friends each other has in space. Dobbin becomes very ill and dies, and Willard is left alone. Dobbin sees the "Ghost Ship" before he dies and tells Willard about it. So they are close friends who rely on each other for companionship and support in their isolated space mission, until Dobbin's death.<cite>[2-3][7-7][32-32]</cite></statement>
+```
+
+文档句索引范围: sid ∈ [1, 317], 共 317 句。
+引用指标: R=0.5, P=0.3333333333333333, F1=0.4
+GPT 引用评判 token（`eval_gpt_cite_json`）: prompt_tokens=1434, completion_tokens=30
+答案 GPT（eval_correct）：*本样本 manifest 未配置 `correct` / 无 eval_correct 分数行，故无 normalized/raw。*
+
+### 陈述 0
+Based on the story, Dobbin and Willard are friends and space mates. They have been on a mission together for four years and are the only friends each other has in space. Dobbin becomes very ill and dies, and Willard is left alone. Dobbin sees the "Ghost Ship" before he dies and tells Willard about it. So they are close friends who rely on each other for companionship and support in their isolated space mission, until Dobbin's death.
+- GPT support_score=0.5; Rating: [[Partially supported]]
+
+**跨度** `[2-3]`
+- au=0.6820135712623596, eu=0.17715612053871155, au′=0.6820124983787537, eu′=0.04128190875053406
+- top_logits 方差 (pvariance, 有限 logit): 0.523718981861748
+- top_logits 数值: `[23.947368621826172, 22.5]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 23.947368621826172 | The only friend in space Willard had ever known was dying. |
+| 2 | 2 | 2 | 22.5 | But Willard wasn't superstitions. |
+
+**跨度** `[7-7]`
+- au=1.8090482853949652e-06, eu=0.27737218141555786, au′=-0.0, eu′=0.03696497529745102
+- top_logits 方差 (pvariance, 有限 logit): 0.0
+- top_logits 数值: `[26.05263328552246]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 26.05263328552246 | The only friend in space Willard had ever known was dying. |
+
+**跨度** `[32-32]`
+- au=0.6820135712623596, eu=0.17715612053871155, au′=0.6820124983787537, eu′=0.04128190875053406
+- top_logits 方差 (pvariance, 有限 logit): 0.523718981861748
+- top_logits 数值: `[23.947368621826172, 22.5]`
+
+| rank | token | 解析句号 | logit | 该句内容（全文） |
+|---|---|---|---|---|
+| 1 | 7 | 7 | 23.947368621826172 | The only friend in space Willard had ever known was dying. |
+| 2 | 2 | 2 | 22.5 | But Willard wasn't superstitions. |
+- GPT 引用1: span=[2, 3], relevant=0
+- GPT 引用2: span=[7, 7], relevant=1
+- GPT 引用3: span=[32, 32], relevant=0
