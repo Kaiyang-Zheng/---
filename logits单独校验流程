@@ -1,20 +1,22 @@
-通过Teacher-forcing技术，回溯模型在生成每一个引文数字瞬间的心理状态（Logits/概率分布）。引文生成本质上是概率寻址，强行将模型状态固定在引用括号 [ 刚生成的瞬间，然后进行一次 causal forward（因果前向计算），拿到top10_numeric_logits（前10个数字 token 的原始得分）。
-
+引文生成本质上是概率寻址，通过Teacher-forcing技术，可以回溯模型在生成每一个引文数字瞬间的心理状态（Logits/概率分布）。
+先把评测用的长文档（按句子编号后的版本）和问题拼成模型在正式推理时看到的那一整段用户输入，并得到对应的 token序列；再拿模型当时已经生成好的整段回答文本，一直截到某个引用里句首编号第一个数字出现之前（相当于引用方括号已经写好、数字还没写出来），把这一截作为已生成的前缀直接接在用户输入后面，并在序列末尾读出下一个 token的打分，再从中挑出十个数字相关 token的原始得分，作为该引用位置处模型当时的数字偏好。
+```mermaid
 flowchart TD
-    A[tokenizer.build_chat_input prompt] --> B[取 user 段长度 p0]
-    B --> C{遍历 _assistant_encoding_variants frozen}
-    C --> D[encode variant 为 suf]
-    D --> E{suf 非空?}
+    A["build_chat_input：只编码用户轮（含长文+问题）"] --> B["记用户段长度 p0"]
+    B --> C{"遍历助手前缀的几种分词变体（如是否多一个换行）"}
+    C --> D["把当前变体编成 token 序列 suf"]
+    D --> E{"suf 非空？"}
     E -->|否| C
-    E -->|是| F[full = input_ids + suf; attention_mask 全 1]
-    F --> G[model 前向 inference_mode]
-    G --> H[next_pos = p0 + len(suf) - 1, 边界裁剪]
-    H --> I[logits_1d = logits_full[next_pos]]
-    I --> J{target_next_token_id 为 None?}
-    J -->|是| K[选定该 variant, break]
-    J -->|否| L[用 logits_1d[target] 选最大分的 variant]
+    E -->|是| F["full = 用户 input_ids + suf；attention 全 1"]
+    F --> G["模型前向（推理模式、无梯度）"]
+    G --> H["取位置 next_pos = p0 + len(suf) - 1（做边界裁剪）"]
+    H --> I["读出该位置的下一步 logits（一维）"]
+    I --> J{"是否已知真实下一个 token？"}
+    J -->|否| K["直接采用当前变体并结束循环"]
+    J -->|是| L["用真实下一 token 的 logit 打分，选最高的变体"]
     L --> C
-    K --> M{所有 variant 都失败?}
-    M -->|是| N[RuntimeError]
-    M -->|否| O[softmax / logtoku / extract_top_numeric_prefix / top_k_numeric...]
-    O --> P[返回 logits_1d, variant, comp, comp_prime, top10_nb, numeric_prefix_tokens]
+    K --> M{"所有变体都不可用？"}
+    M -->|是| N["报错 RuntimeError"]
+    M -->|否| O["softmax；非数字 top-k；数字前缀；再取数字 token top-k"]
+    O --> P["返回 logits、变体、对比指标、数字 top10 等"]
+```
