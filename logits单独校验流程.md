@@ -20,3 +20,40 @@ flowchart TD
     M -->|否| O["softmax；非数字 top-k；数字前缀；再取数字 token top-k"]
     O --> P["返回 logits、变体、对比指标、数字 top10 等"]
 ```
+
+# Teacher-force 增量 KV：按 `digit_pos` 全局排序
+
+同一篇 `prediction` 内，所有 cite 首数字位先按字符位置 `digit_pos` 升序遍历；在首轮锁定 assistant 的换行变体后，后续步尽量只把**相对上一步多出来的** assistant token 前向进模型，并复用 `past_key_values`。在**最后一个新 token** 处取 `logits[0, -1]` 作为「下一 token」分布。
+
+```mermaid
+flowchart TD
+  A[收集 cite 首数字位目标] --> B[按 digit_pos 升序排序]
+  B --> C[user 段 build_chat_input 一次]
+  C --> D[frozen0 = pred 到首位点前]
+  D --> E[各 assistant 变体: cat user + tokenize variant]
+  E --> F[model 全序列 use_cache=True]
+  F --> G[用 teacher 首 token id 选 logit 最大的变体]
+  G --> H[锁定 variant_idx, past, prev_asst_ids]
+  H --> I{下一位点}
+  I --> J[frozen = pred 到当前位点前]
+  J --> K[new_ids = tokenize 该变体下 frozen]
+  K --> L{LCP 与 prev 比较}
+  L -->|LCP 小于 len prev| M[全量 user+new_ids 重算 KV]
+  L -->|否则| N{有新 token 后缀?}
+  N -->|否| O[KV 与 logits 不变]
+  N -->|是| P[只 forward 后缀 + past_key_values]
+  M --> Q[logits 最后一位置]
+  P --> Q
+  O --> R[沿用 last logits]
+  Q --> S[top-K 数字 + AU EU 等]
+  R --> S
+  S --> T{还有位点?}
+  T -->|是| I
+  T -->|否| U[按 stmt / span_index 排序输出]
+```
+
+要点：
+
+- **单调 `digit_pos`** 保证 `frozen` 字符串只变长，多数步下 `new_ids` 是 `prev_asst_ids` 的**延长**，只需增量一段 `chunk`。
+- **`LCP < len(prev)`**：新 token 序列无法接在旧 cache 后（常见于跨 token 边界的字符增长），必须 **user+assistant 全量** 重算 cache。
+- **首轮变体**：与原先 `_next_token_logits_after_frozen` 一致，用 teacher 的 `target_next_token_id` 在变体间打分，避免 chat template 下「是否 leading `\n`」歧义。
