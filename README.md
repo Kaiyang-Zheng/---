@@ -1,19 +1,79 @@
 # Banzhaf-Cite：基于单通道支持度图的 LongCite 实时引用修正方案
 ---
+# QA remaining 750 — 四数据集 × 训练/测试 × Base / Prelim LoRA / FA-φ e1
 
-## 0. 方法目标
+**评测**：GPT `gpt-4o`，macro citation F1（doc 级平均）  
+**推理**：纯 LoRA 一次性 full-gen（temperature=0.95, top_p=0.7）
 
-LongCite 已经能生成带 `<statement>...</statement>` 和 `<cite>[a-b]</cite>` 的回答，但引用可能存在三类问题：
+## 划分说明
 
-| 类型 | 问题 | 修正目标 |
-|---|---|---|
-| A 类 | 多个候选句协同才能完整支持 statement | 找到最小多句证据联盟 |
-| B 类 | 候选集中已有关键句，但模型选错句或边界错 | 找到最关键单句或少数句 |
-| C 类 | 候选中仍无足够证据，或 statement overclaim | 不强行修，删除/改写/补检索 |
+| 标签 | 含义 |
+|------|------|
+| **训练 (prelim)** | `bi_role_cohort.jsonl` 中出现过的 doc（**347** 唯一 doc） |
+| **训练 (FA-φ)** | `phi_anchor_cohort.jsonl` 中出现过的 doc（**472** 唯一 doc） |
+| **测试** | 相对对应训练池未出现的 doc |
 
-Banzhaf-Cite 
+下表「训练/测试」列默认按 **prelim 池**；FA-φ e1 模型另注 phi 池规模。
 
-# QA 750 — statement-level precision × AU′ × mean_logit
+## 750 总览（prelim 训练池划分）
+
+| 划分 | n | Base F1 | Prelim LoRA (bi e3) F1 | FA-φ e1 (holdout~0.77) F1 |
+|------|---|---:|---:|---:|
+| 全集 | 750 | **0.709** | **0.7459** | **0.7457** |
+| 训练 (prelim) | 100 | **0.5751** | **0.6772** | **0.6636** |
+| 测试 (prelim) | 650 | **0.7296** | **0.7564** | **0.7583** |
+
+### FA-φ e1 按 phi_anchor 训练池
+
+| 划分 | n | FA-φ e1 F1 |
+|------|--:|-----:|
+| 全集 | 750 | 0.7457 |
+| 训练 (phi) | 214 | 0.6997 |
+| 测试 (phi) | 536 | 0.7641 |
+
+## 分数据集（全集 / prelim 训练 / prelim 测试）
+
+### hotpotqa（n=200，prelim 训练 27 / 测试 173）
+
+| 划分 | n | Base F1 | Prelim LoRA (bi e3) F1 | FA-φ e1 (holdout~0.77) F1 |
+|------|---|-----:|-----:|-----:|
+| 全集 | 200 | 0.5828 | 0.6203 | 0.6267 |
+| 训练 | 27 | 0.3793 | 0.5078 | 0.4865 |
+| 测试 | 173 | 0.6145 | 0.6379 | 0.6485 |
+
+### dureader（n=200，prelim 训练 36 / 测试 164）
+
+| 划分 | n | Base F1 | Prelim LoRA (bi e3) F1 | FA-φ e1 (holdout~0.77) F1 |
+|------|---|-----:|-----:|-----:|
+| 全集 | 200 | 0.7498 | 0.7813 | 0.771 |
+| 训练 | 36 | 0.6945 | 0.7687 | 0.741 |
+| 测试 | 164 | 0.7619 | 0.7841 | 0.7776 |
+
+### multifieldqa_en（n=150，prelim 训练 25 / 测试 125）
+
+| 划分 | n | Base F1 | Prelim LoRA (bi e3) F1 | FA-φ e1 (holdout~0.77) F1 |
+|------|---|-----:|-----:|-----:|
+| 全集 | 150 | 0.7281 | 0.7411 | 0.769 |
+| 训练 | 25 | 0.5784 | 0.6673 | 0.6781 |
+| 测试 | 125 | 0.7581 | 0.7559 | 0.7872 |
+
+### multifieldqa_zh（n=200，prelim 训练 12 / 测试 188）
+
+| 划分 | n | Base F1 | Prelim LoRA (bi e3) F1 | FA-φ e1 (holdout~0.77) F1 |
+|------|---|-----:|-----:|-----:|
+| 全集 | 200 | 0.7802 | 0.8395 | 0.8219 |
+| 训练 | 12 | 0.6502 | 0.8047 | 0.7994 |
+| 测试 | 188 | 0.7885 | 0.8417 | 0.8234 |
+
+## 产物
+
+- `cite_scores_longcite_base_full_only_qa_remaining.json` — Base
+- `cite_scores_longcite_lora_full_only_qa_remaining.json` — Prelim LoRA (bi e3)
+- `cite_scores_fa_phi_e1_full_only_qa_remaining.json` — FA-φ e1 (holdout~0.77)
+
+
+
+# QA 750经过Banzhaf指导的Lora微调后 — statement-level precision × AU′ × mean_logit
 
 Each cell: **mean GPT relevant precision** over statements with ≥1 cite span; AU/logit from teacher-force on generated cite (T=0.95, top-p=0.7).
 
