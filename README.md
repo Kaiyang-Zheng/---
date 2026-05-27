@@ -1,5 +1,4 @@
-# Banzhaf-Cite：基于单通道支持度图的 LongCite 实时引用修正方案
----
+
 # QA remaining 750 — 四数据集 × 训练/测试 × Base / Prelim LoRA / FA-φ e1
 
 **评测**：GPT `gpt-4o`，macro citation F1（doc 级平均）  
